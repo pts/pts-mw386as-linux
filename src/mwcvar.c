@@ -11,7 +11,7 @@ static void
 showLine()
 {
 	if (!((NULL == inpc) || lswitchX))
-		printf("%d: %s: ", inpc->lineNo, inpc->name);
+		fprintf(errdev, "%d: %s: ", inpc->lineNo, inpc->name);
 }
 
 /*
@@ -28,7 +28,7 @@ char *s;
 		exit(1);
 
 	showLine();
-	printf("%r\n", &s);
+	fprintf(errdev, "%r\n", &s);
 
 	if (0 != (errno = save))
 		perror("errno reports");
@@ -53,7 +53,7 @@ char *s;
 		return;
 
 	showLine();
-	printf("%r\n", &s);
+	fprintf(errdev, "%r\n", &s);
 }
 
 /*
@@ -69,5 +69,5 @@ char *s;
 	sTitle();
 
 	showLine();
-	printf("Warning %r\n", &s);
+	fprintf(errdev, "Warning %r\n", &s);
 }

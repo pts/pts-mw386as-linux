@@ -108,6 +108,7 @@ extern short pcnt, bcnt; /* count op parens and brackets + left - right */
 extern short choices;	 /* number of ways to do this op */
 extern char xpass;	/* set if a branch changes size */
 extern long showSym;
+extern FILE *errdev;	/* Where to put out errors */
 
 /* from libs */
 char *strcpy();

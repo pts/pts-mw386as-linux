@@ -283,14 +283,14 @@ unsigned short b;
 	if (!ct) {
 		sTitle();
 		pos = 4;
-		printf("%04lx", dot.loc + segs[dot.sg - 1].s_vaddr);
+		printf("%04lX", dot.loc + segs[dot.sg - 1].s_vaddr);
 	}
 
 	if (!(ct % CMOD)) {
 		pos++;
 		putchar(' ');
 	}
-	printf("%02x", b & 255);
+	printf("%02X", b & 255);
 	pos += 2;
 	ct++;
 }
@@ -482,7 +482,7 @@ sym *sp;
 	char *name;
 
 	i = strlen(name = SYMNAME(sp));
-	fprintf(stderr, "Trace %x, '%s' flag %d len %d num %d\n",
+	fprintf(stderr, "Trace %X, '%s' flag %d len %d num %d\n",
 		 sp, name, sp->flag, i, sp->num);
 }
 

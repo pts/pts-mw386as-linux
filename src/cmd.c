@@ -555,6 +555,37 @@ data *oper;
 }
 
 /*
+ * Output alignment bytes.
+ */
+static int
+alignOut(seg, byte, n)
+{
+	int rv = 0;
+
+	switch (seg) {
+	case 0:	/* fill selected by user */
+		while (dot.loc & n) {
+			rv = 1;
+			outab(byte);
+		}
+		break;
+	case 1:	/* text */
+		while (dot.loc & n) {
+			rv = 1;
+			outab(0x90);
+		}
+		break;
+	case 2:	/* data */
+		while (dot.loc & n) {
+			rv = 1;
+			outab(0);
+		}
+		break;
+	}
+	return rv;
+}
+
+/*
  * Commands with a list of data as parm.
  */
 dcmd(label, op, oper)
@@ -607,24 +638,13 @@ data *oper;
 			return(1);
 		}
 
-		switch (s) {
-		case 0:	/* fill selected by user */
-			while (dot.loc & n)
-				outab(b);
-			break;
-		case 1:	/* text */
-			while (dot.loc & n)
-				outab(0x90);
-			break;
-		case 2:	/* data */
-			while (dot.loc & n)
-				outab(0);
-			break;
-		case 3:	/* bssd */
+		if (3 == dot.sg) {
 			oper.d.l = (dot.loc + n) & ~n;
 			oper.type = 'l';
 			doOrg(NULL, &oper);
 		}
+		else
+			alignOut(s, b, n);
 		return(0);
 
 	case S_DATA:
@@ -633,15 +653,15 @@ data *oper;
 			break;
 		switch (op->code) {
 		case 1:
-			dot.loc++;
-			dot.loc &= ~1;
+			s = alignOut(dot.sg, 0, 1);
 			break;
 		case 2:
 		case 3:
 		case 4:
-			dot.loc += 3;
-			dot.loc &= ~3;
+			s = alignOut(dot.sg, 0, 3);
 		}
+		if (s)	/* Alignment stuff went out */
+			outLine("", ' ');
 	}
 
 	if(NULL != label) {

@@ -171,6 +171,8 @@ char **argv;
 
 	symInit();		/* init symbol table */
 
+	errdev = lswitchX ? stdout : stderr;
+
 	fileOpen(fileName);
 	title = scpy(fileName, 0);
 

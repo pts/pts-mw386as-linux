@@ -57,3 +57,4 @@ short choices;		/* Number of ways to do this opcode */
 char xpass;		/* set if a branch changes size */
 
 long showSym;		/* location of clobbered symbol */
+FILE *errdev;		/* Where to put out errors */

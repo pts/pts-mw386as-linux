@@ -268,10 +268,10 @@ getLine()
 				case 0:
 					exit(0);
 				case 1:
-					printf("1 Error\n");
+					fprintf(errdev, "1 Error\n");
 					break;
 				default:
-					printf("%d Errors\n", errCt);
+					fprintf(errdev, "%d Errors\n", errCt);
 				}
 				unlink(outName);
 				exit(1);
