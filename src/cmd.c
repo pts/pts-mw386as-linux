@@ -97,6 +97,14 @@ data *item;
 			symLookUp(p->str, S_LOCAL, 
 				  item->d.y->loc, item->d.y->sg);
 		break;
+
+	case S_DEF:
+		if (2 == pass) {
+			if ('y' != item->type)
+				yyerror("Invalid operand type"); /**/
+			coffdef(item->d.y);
+		}
+		break;
 	}
 }
 
@@ -112,12 +120,9 @@ parm *p, *label;
 	switch(op->kind) {
 	case S_TAG:
 	case S_FILE:
-	case S_DEF:
+		break;
 	case S_ENDF:
-		if (2 == pass) {
-			labelIgnored(label);
-			coffdef(op, p);
-		}
+		coffendef();
 		break;
 
 	case S_SEGMENT:	/* change segments */
@@ -303,7 +308,7 @@ data *item;
 		n = item->d.l;
 		break;
 	case 'y':
-		if (op->kind == S_EQU)
+		if ((op->kind == S_EQU) || (op->kind == S_VAL))
 			break;
 	default:
 		yyerror("Invalid operand type"); /* NODOC */
@@ -311,15 +316,18 @@ data *item;
 	}
 
 	switch(op->kind) {
-	case S_TYPE:
 	case S_VAL:
+		if (2 == pass)
+			coffval(item);
+		break;
+	case S_TYPE:
 	case S_SIZE:
 	case S_SCL:
 	case S_LINE:
 		if (2 == pass) {
 			if (NULL != label)
 				yyerror("Label on invalid operator"); /**/
-			coffval(op, n);
+			coffset(op, n);
 		}
 		break;
 
@@ -368,9 +376,19 @@ data *item;
 			doOrg(NULL, item);
 		else if (item->type == 'l')
 			symLookUp(label->str, S_XSYM, n, 0);
-		else
+		else {
 			symLookUp(label->str, S_LOCAL, 
 				  item->d.y->loc, item->d.y->sg);
+
+			/* forward equate make sure there is an extra pass */
+			if (!pass && (item->d.y->flag & S_UNDEF))
+				xpass = 1;
+
+			if (item->d.y->flag & (S_COMMON|S_EXREF))
+			  yyerror("Cannot equate to externally defined symbol");
+			  /* This would mean creating another symbol.
+			   * Try using \fB.define\fR. */
+		}
 		return;
 	case S_PLEN:	/* set page length */
 		nlpp = n - 10;
@@ -410,6 +428,8 @@ data *addr;
 
 	x.ref = addr->d.y;
 	x.exp = x.ref->loc;
+	if (x.ref->flag & (S_COMMON|S_EXREF))
+		x.exp <<= 1;	/* double we will loose it back */
 	return(&x);
 }
 

@@ -17,6 +17,51 @@
 	 * This can be a variety of problems. */
 #endif
 
+static char swChars[] = "wQXxfpbgnlo:?E:D:"; /* list for getargs */
+static int savArgc;
+static char **savArgv;
+static char dodefsw;	/* -D or -E used */
+
+/*
+ * Do -E and -D definitions. 
+ * -Dx=y is the same as x .define y
+ * -Ea=5 is the same as a .equ 5
+ * This is called every pass.
+ */
+void
+dodefs()
+{
+	register char *p, c;
+
+	if (!dodefsw)	/* no -D or -E to process */
+		return;
+
+	optix = 1;	/* reset getargs */
+	while (EOF != (c = getargs(savArgc, savArgv, swChars))) {
+		switch(c) {
+		case 'D':
+		case 'E':
+			if (NULL == (p = strchr(optarg, '=')) || p == optarg)
+				fatal("Invalid option on -%c switch", c);
+				/* The syntax of -D and -E switches is
+				 * -Dname=string
+				 * -Ename=number */
+			*p++ = '\0';
+			if ('D' == c) {
+				defCt++;
+				defMac(gcpy(optarg, 0),
+				       gcpy(p, offset(parm, str)),
+				       MACSTR);
+			}
+			else
+				symLookUp(gcpy(optarg, 0), S_XSYM, atol(p), 0);
+			*--p = '=';
+		default:
+			continue;
+		}
+	}
+}
+
 /*
  * Invalid usage message.
  */
@@ -35,7 +80,6 @@ char **argv;
 {
 	register char *p, c;
 	char *fileName;
-	extern char *optarg;
 
 	initStor();		/* init storage control */
 	segInit();		/* init segment data */
@@ -43,8 +87,11 @@ char **argv;
 	newLevel(NORMAL);	/* set base level for if else etc */
 
 	_addargs("AS", &argc, &argv);
+	savArgv = argv;
+	savArgc = argc;
+
 	fileName = NULL;
-	while (EOF != (c = getargs(argc, argv, "wQXxfpbgnlo:?"))) {
+	while (EOF != (c = getargs(argc, argv, swChars))) {
 		switch(c) {
 		case 0:
 			if (NULL != fileName)	/* one time only */
@@ -103,6 +150,12 @@ char **argv;
 			 * \fBas\fR aborts to
 			 * avoid overwriting an important file. */
 			break;
+
+		case 'D':	/* process in dodefs */
+		case 'E':
+			dodefsw = 1;
+			break;
+
 		case '?':
 		default:
 			usage();
@@ -146,6 +199,7 @@ char **argv;
 		dTime[c] = '\0';
 	}
 
+	dodefs();
 	yyparse();
 	fatal("Unexpected return from parser"); /* TECH */
 }

@@ -29,7 +29,7 @@ short lineSize = 79;	/* listing line length */
 short nlpp = 56;	/* default lines per page */
 short linect = 56;	/* current line number */
 short pass = 0;		/* current pass number */
-short statement;	/* statment number */
+int statement;		/* statment number */
 inpctl *inpc;		/* file stack */
 macro *inMacDef;	/* in macro definition */
 macro *macFound;	/* the macro found by lex.c */
@@ -48,3 +48,5 @@ char bswitchX;		/* storage for bswitch from -b */
 char wswitchX;		/* storage for wswitch from -w */
 char nswitchX;		/* storage for nswitch from -n */
 short pcnt, bcnt;	/* count op parens and brackets + left - right */
+short choices;		/* Number of ways to do this opcode */
+char xpass;		/* set if a branch changes size */

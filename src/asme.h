@@ -1,7 +1,17 @@
 /*
  * 80386 assembler externs.
  */
-unsigned short hash();	/* hash a symbol */
+
+/* main */
+void dodefs();		/* process -D and -E options at each pass */
+
+/* getargs */
+extern int optix;	/* reset to 1 to reporcess */
+extern char *optarg;	/* Global argument pointer */
+extern int getargs();	/* fancy get arguments */
+
+/* hash */
+unsigned short hash();
 
 /* symbol handlers */
 void symInit();		/* init symbol tables */
@@ -76,7 +86,7 @@ extern short lineSize;	/* listing line length */
 extern short linect;	/* line counter */
 extern short nlpp;	/* lines per page */
 extern short pass;	/* current pass number */
-extern short statement;	/* statement number */
+extern int statement;	/* statement number */
 extern inpctl *inpc;	/* file stack */
 extern macro *inMacDef;	/* in macro definition */
 extern macro *macFound;	/* the macro found by lex.c */
@@ -93,6 +103,8 @@ extern char bswitchX;	/* storage for bswitch from -b */
 extern char wswitchX;	/* storage for wswitch from -w */
 extern char nswitchX;	/* storage for nswitch from -n */
 extern short pcnt, bcnt; /* count op parens and brackets + left - right */
+extern short choices;	 /* number of ways to do this op */
+extern char xpass;	/* set if a branch changes size */
 
 /* from libs */
 char *strcpy();
@@ -110,6 +122,6 @@ void exit();
 /* tables from symtab.c */
 extern readonly symt typTab[];
 extern readonly char charLump[];
-extern readonly short prefTab[];
+extern readonly opc prefTab[];
 extern readonly nhash hashCodes[];
 extern psym symtab[];

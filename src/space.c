@@ -52,10 +52,11 @@ unsigned n;
 void
 initStor()
 {
-	char *j;
 	extern char *malloc();
 
 #if 0
+	char *j;
+
 	/* This speeds things up on many systems by minamizing
 	 * traffic with the operating system for space.
 	 */
@@ -86,8 +87,6 @@ char *
 galloc(size)
 unsigned size;
 {
-	register char *p;
-
 	if(top == max)
 		expand(&mArray, &max, 10, sizeof(*mArray));
 

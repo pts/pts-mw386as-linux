@@ -15,8 +15,11 @@ B r32 %eax %ecx %edx %ebx %esp %ebp %esi %edi ? %al 0xa $0xa
 . rm8 r8 0x3e8 vv vd ? r16 r32 $0x64
 b rm16 r16 0x3e8 vv vd ? r8 r32 $0x64
 B rm32 r32 0x3e8 vv vd ? r16 r8 $0x64
+. m8  0x10 vv vd ? r8 $0x64
 b m16 0x3e8 vv vd ? r8 r32 $0x64
 B m32 0x3e8 vv vd ? r16 r8 $0x64
+B m64 0x3e8 vv vd ? r16 r8 $0x64
+B m80 0x3e8 vv vd ? r16 r8 $0x64
 . mem32 abc
 . mem16 abc
 . reli . abc ? al
@@ -76,6 +79,7 @@ e vz %si %di %bx
 # t	Special two operand imult.
 # P	use /r on document. no other use.
 # X	May have mixed word and double word operand.
+# A	Ambiguous length construction.
 #
 + 1	# Opcode table - type, hex value, opcode, operands
 G   				# opcodes with no general form
@@ -106,8 +110,8 @@ d    0099 cltd			# Double word to quad word
 -    00c8 enter imm8 imm16	# Make stack frame for procedure
 F    d9f0 f2xm1			# ST = 2 ** ST - 1
 F    d9e1 fabs			# ST = abs(ST)
-mF   df04 fbld	m32		# Load Binary Coded Decimal
-mF   df06 fbstp m32		# Store Binary Coded Decimal and Pop
+mF   df04 fbld	m80		# Load Binary Coded Decimal
+mF   df06 fbstp m80		# Store Binary Coded Decimal and Pop
 F    d9e0 fchs			# Change Floating Sign
 F    ded9 fcompp		# Floating Compare and pop twice
 F    d9ff fcos			# Cosine
@@ -131,12 +135,14 @@ F    d9d0 fnop			# No Operation
 F    d9f3 fpatan		# Partial Arctangent
 F    d9f8 fprem			# Partial Remainder toward 0
 F    d9f5 fprem1		# Partial Remainder < 1/2 modulus
-F    d9f2 fprem			# Partial Tangent
+F    d9f2 fptan			# Partial Tangent
+F    dbf4 frstpm		# set 287XL real mode (nop for 387/486)
 F    d9fc frndint		# Round To Integer
-mF   db04 frstor m32		# Resore FPU State
-mF   db06 fnsave m32		# Store FPU State no wait
-mfF  db06 fsave m32		# Store FPU State
+mF   dd04 frstor m32		# Resore FPU State
+mF   dd06 fnsave m32		# Store FPU State no wait
+mfF  dd06 fsave m32		# Store FPU State
 F    d9fd fscale		# Scale
+F    dbe4 fsetpm		# set 287 protected mode (nop for 387/486)
 F    d9fe fsin			# Sine
 F    d9fb fsincos		# Sine and Cosine
 F    d9fa fsqrt			# Square Root
@@ -226,7 +232,9 @@ wr   006f outsw			# Output word to port into ES:(E)DI
 dr   006f outsl			# Output long to port into ES:(E)DI
 R    00f3 rep			# rep following instruction CX times
 R    00f3 repe			# repe following instruction CX times or eq
+R    00f3 repz			# alternate name for repe
 R    00f2 repne			# repne following instruction CX times or ne
+R    00f2 repnz			# alternate name for repnz
 -    00c3 ret			# Return
 -    00c2 ret	imm16		# Return pop imm16 bytes of parms
 -    00cb lret			# Far return
@@ -285,7 +293,7 @@ pm   0005 verw	rm16		# Verify segment for write
 -    00d7 xlat			# Table lookup translation
 -    00d7 xlatb			# Table lookup translation
 G   	adc	# Add with carry
-ml   8302 00000	imm8s m32
+Aml  8302 adc	imm8s m32
 dml  8302 adcl	imm8s rm32
 wml  8302 adcw	imm8s rm16
 -    0014 adcb	imm8 al
@@ -302,7 +310,7 @@ lP   0010 adcb	r8 rm8
 wlP  0011 adcw	r16 rm16
 dlP  0011 adcl	r32 rm32
 G   	add	# Add
-ml   8300 00000	imm8s m32
+Aml  8300 add	imm8s m32
 dml  8300 addl	imm8s rm32
 wml  8300 addw	imm8s rm16
 l    0004 addb	imm8 al
@@ -319,7 +327,7 @@ lP   0000 addb	r8 rm8
 wlP  0001 addw	r16 rm16
 dlP  0001 addl	r32 rm32
 G   	and	# Logical AND
-ml   8304 00000	imm8s m32
+Aml  8304 and	imm8s m32
 dml  8304 andl	imm8s rm32
 wml  8304 andw	imm8s rm16
 l    0024 andb	imm8 al
@@ -365,7 +373,7 @@ dpl  00ab btsl	r32 rm32
 wpml ba05 btsw	imm8 rm16
 dpml ba05 btsl	imm8 rm32
 G   	cmp		# Compare
-m    8307 00000	imm8s m32
+Am   8307 cmp	imm8s m32
 dm   8307 cmpl	imm8s rm32
 wm   8307 cmpw	imm8s rm16
 -    003c cmpb	imm8 al
@@ -382,14 +390,14 @@ P    0038 cmpb	r8 rm8
 wP   0039 cmpw	r16 rm16
 dP   0039 cmpl	r32 rm32
 G   	dec		# Decrement by 1
-ml   ff01 00000	m32
+Aml  ff01 dec	m32
 wa   0048 decw	r16
 da   0048 decl	r32
 ml   fe01 decb	rm8
 wml  ff01 decw	rm16
 dml  ff01 decl	rm32
 G   	div		# Unsigned divide
-m    f706 00000	m32
+Am   f706 div	m32
 m    f606 divb	rm8 al
 m    f606 divb	rm8
 wm   f706 divw	rm16 ax
@@ -397,129 +405,129 @@ wm   f706 divw	rm16
 dm   f706 divl	rm32 eax
 dm   f706 divl	rm32
 G   	fadd		# Floating add
-mF   d800 00000  m32
+AmF  d800 fadd	 m32
 mF   d800 fadds  m32
-mF   dc00 faddl  m32
+mF   dc00 faddl  m64
 aF   d8c0 fadd	 fpreg st0
 aF   d8c0 fadd	 fpreg
-F    d8c1 fadd
+F    dec1 fadd
 aF   dcc0 fadd	 st0 fpreg
 G   	faddp		# Floating add and pop
 aF   dec0 faddp  st0 fpreg
 aF   dec0 faddp  fpreg
 F    dec1 faddp
 G   	fcom		# Floating Compare
-mF   d802 00000  m32
+AmF  d802 fcom   m32
 mF   d802 fcoms  m32
-mF   dc02 fcoml  m32
+mF   dc02 fcoml  m64
 aF   d8d0 fcom	 fpreg st0
 aF   d8d0 fcom	 fpreg
 F    d8d1 fcom
 G   	fcomp		# Floating Compare and Pop
-mF   d803 000000 m32
+AmF  d803 fcomp  m32
 mF   d803 fcomps m32
-mF   dc03 fcompl m32
+mF   dc03 fcompl m64
 aF   d8d8 fcomp  fpreg
 F    d8d9 fcomp
 G   	fdiv		# Floating divide
-mF   d806 00000  m32
+AmF  d806 fdiv   m32
 mF   d806 fdivs  m32
-mF   dc06 fdivl  m32
+mF   dc06 fdivl  m64
 aF   d8f0 fdiv	 fpreg st0
 aF   d8f0 fdiv	 fpreg
-F    d8f1 fdiv
-aF   dcf0 fdiv	 st0 fpreg
+F    def9 fdiv
+aF   dcf8 fdiv	 st0 fpreg
 G   	fdivp		# Floating divide and pop
-aF   def0 fdivp  st0 fpreg
-aF   def0 fdivp  fpreg
-F    def1 fdivp
+aF   def8 fdivp  st0 fpreg
+aF   def8 fdivp  fpreg
+F    def9 fdivp
 G   	fdivr		# Reverse floating divide
-mF   d807 000000  m32
+AmF  d807 fdivr   m32
 mF   d807 fdivrs  m32
-mF   dc07 fdivrl  m32
+mF   dc07 fdivrl  m64
 aF   d8f8 fdivr	 fpreg st0
 aF   d8f8 fdivr	 fpreg
-F    d8f9 fdivr
-aF   dcf8 fdivr	 st0 fpreg
+F    def1 fdivr
+aF   dcf0 fdivr	 st0 fpreg
 G   	fdivrp		# Reverse floating divide and pop
-aF   def8 fdivrp  st0 fpreg
-aF   def8 fdivrp  fpreg
-F    def9 fdivrp
+aF   def0 fdivrp  st0 fpreg
+aF   def0 fdivrp  fpreg
+F    def1 fdivrp
 G   	fiadd		# Add integer to float
-mF   da00 000000 m32
+AmF  da00 fiadd  m32
 mF   da00 fiaddl m32
 mF   de00 fiadds m16
 G   	ficom		# Compare float to integer
-mF   da02 000000 m32
+AmF  da02 ficom  m32
 mF   da02 ficoml m32
 mF   de02 ficoms m16
 G   	ficomp		# Compare float to integer and pop
-mF   da03 0000000 m32
+AmF  da03 ficomp  m32
 mF   da03 ficompl m32
 mF   de03 ficomps m16
 G   	fidiv		# Divide float by integer
-mF   da06 000000 m32
+AmF  da06 fidiv  m32
 mF   da06 fidivl m32
 mF   de06 fidivs m16
 G   	fidivr		# Reverse divide integer by float
-mF   da07 0000000 m32
+AmF  da07 fidivr  m32
 mF   da07 fidivrl m32
 mF   de07 fidivrs m16
 G   	fild		# Load integer
-mF   db00 000000 m32
+AmF  db00 fild	 m32
 mF   db00 fildl  m32
 mF   df00 filds	 m16
-mF   df05 fildll m32
+mF   df05 fildll m64
 G   	fimul		# Multiply integer to float
-mF   da01 000000 m32
+AmF  da01 fimul  m32
 mF   da01 fimull m32
 mF   de01 fimuls m16
 G   	fist		# Store integer
-mF   db02 000000 m32
+AmF  db02 fist	 m32
 mF   db02 fistl  m32
 mF   df02 fists	 m16
 G   	fistp		# Store integer and pop
-mF   db03 0000000 m32
+AmF  db03 fistp   m32
 mF   db03 fistpl  m32
 mF   df03 fistps  m16
 mF   df07 fistpll m32
 G   	fisub		# Subtract integer from float
-mF   da04 000000 m32
+AmF  da04 fisub	 m32
 mF   da04 fisubl m32
 mF   de04 fisubs m16
 G   	fisubr		# Reverse subtract integer from float
-mF   da05 0000000 m32
+AmF  da05 fisubr  m32
 mF   da05 fisubrl m32
 mF   de05 fisubrs m16
 G   	fld		# Load Real
-mF   d900 000000 m32
+AmF  d900 fld	 m32
 aF   d9c0 fld	 fpreg
 mF   d900 flds   m32
 mF   dd00 fldl	 m32
-mF   db05 fldt   m32
+mF   db05 fldt   m64
 G   	fmul		# Floating multiply
-mF   d801 00000  m32
+AmF  d801 fmul   m32
 mF   d801 fmuls  m32
-mF   dc01 fmull  m32
+mF   dc01 fmull  m64
 aF   d8c8 fmul	 fpreg st0
 aF   d8c8 fmul	 fpreg
-F    d8c9 fmul
+F    dec9 fmul
 aF   dcc8 fmul	 st0 fpreg
 G   	fmulp		# Floating multiply and pop
 aF   dec8 fmulp  st0 fpreg
 aF   dec8 fmulp  fpreg
 F    dec9 fmulp
 G   	fst		# Store Real
-mF   d902 0000   m32
+AmF  d902 fst    m32
 aF   ddd0 fst	 fpreg
 mF   d902 fsts   m32
-mF   dd02 fstl	 m32
+mF   dd02 fstl	 m64
 G   	fstp		# Store Real and pop
-mF   d903 000000 m32
+AmF  d903 fstp	 m32
 aF   ddd8 fstp	 fpreg
 mF   d903 fstps  m32
-mF   dd03 fstpl	 m32
-mF   db07 fstpt  m32
+mF   dd03 fstpl	 m64
+mF   db07 fstpt  m80
 G   	fnstsw		# Store Status Word no wait
 mF   dd07 fnstsw m16
 F   dfe0 fnstsw ax
@@ -527,29 +535,29 @@ G   	fstsw		# Store Status Word
 mfF  dd07 fstsw m16
 fF   dfe0 fstsw ax
 G   	fsub		# Floating subtract
-mF   d804 00000  m32
+AmF  d804 fsub   m32
 mF   d804 fsubs  m32
-mF   dc04 fsubl  m32
+mF   dc04 fsubl  m64
 aF   d8e0 fsub	 fpreg st0
 aF   d8e0 fsub	 fpreg
-F    d8e1 fsub
-aF   dce0 fsub	 st0 fpreg
+F    dee9 fsub
+aF   dce8 fsub	 st0 fpreg
 G   	fsubp		# Floating subtract and pop
-aF   dee0 fsubp  st0 fpreg
-aF   dee0 fsubp  fpreg
-F    dee1 fsubp
+aF   dee8 fsubp  st0 fpreg
+aF   dee8 fsubp  fpreg
+F    dee9 fsubp
 G   	fsubr		# Reverse floating subtract
-mF   d805 000000  m32
+AmF  d805 fsubr	  m32
 mF   d805 fsubrs  m32
-mF   dc05 fsubrl  m32
+mF   dc05 fsubrl  m64
 aF   d8e8 fsubr	 fpreg st0
 aF   d8e8 fsubr	 fpreg
-F    d8e9 fsubr
-aF   dce8 fsubr	 st0 fpreg
+F    dee1 fsubr
+aF   dce0 fsubr	 st0 fpreg
 G   	fsubrp		# Reverse floating subtract and pop
-aF   dee8 fsubrp  st0 fpreg
-aF   dee8 fsubrp  fpreg
-F    dee9 fsubrp
+aF   dee0 fsubrp  st0 fpreg
+aF   dee0 fsubrp  fpreg
+F    dee1 fsubrp
 G   	fucom		# Unordered compare real
 aF   dde0 fucom	st0 fpreg
 aF   dde0 fucom fpreg
@@ -560,7 +568,7 @@ aF   d9c8 fxch  fpreg st0
 aF   d9c8 fxch  fpreg
 F    d9c9 fxch
 G   	idiv		# Signed divide
-m    f707 00000	m32
+Am   f707 idiv	m32
 m    f607 idivb	rm8 al
 m    f607 idivb	rm8
 wm   f707 idivw	rm16 ax
@@ -568,7 +576,7 @@ wm   f707 idivw	rm16
 dm   f707 idivl	rm32 eax
 dm   f707 idivl	rm32
 G   	imul		# Signed multiply
-m    f705 00000	m32
+Am   f705 imul	m32
 m    f605 imulb	rm8 al
 m    f605 imulb	rm8
 wm   f705 imulw	rm16 ax
@@ -593,7 +601,7 @@ d    00e5 inl	imm8
 w    00ed inw	atdx
 d    00ed inl	atdx
 G   	inc		# Increment by one
-ml   ff00 00000	m32
+Aml  ff00 inc	m32
 wa   0040 incw	r16
 da   0040 incl	r32
 ml   fe00 incb	rm8
@@ -630,7 +638,7 @@ G   	lsl		# Load segment limit
 wpP  0003 lslw	rm16 r16
 dpP  0003 lsll	rm32 r32
 G   	mov		# Move data
--    00c6 00000	imm8 m32
+A    00c6 mov	imm8 m32
 -    00a0 movb	moffs al
 w    00a1 movw	moffs ax
 d    00a1 movl	moffs eax
@@ -658,7 +666,7 @@ dpP  0023 movl	r32 dbreg
 dpP  0024 movl	treg r32
 dpP  0026 movl	r32 treg
 G   	movsx			# Move with sign extend
-dpP  00be 000000 rm8 r32
+AdpP 00be movsx  m8 r32
 wpP  00be movsxb rm8 r16
 dpP  00be movsxb rm8 r32
 dpXP 00bf movsxw rm16 r32
@@ -666,7 +674,7 @@ wpP  00be movsbw rm8 r16
 dpP  00be movsbl rm8 r32
 dpXP 00bf movswl rm16 r32
 G   	movzx			# Move with zero extend
-dpP  00b6 000000 rm8 r32
+AdpP 00b6 movzx	 m8 r32
 wpP  00b6 movzxb rm8 r16
 dpP  00b6 movzxb rm8 r32
 dpXP 00b7 movzxw rm16 r32
@@ -674,7 +682,7 @@ wpP  00b6 movzbw rm8 r16
 dpP  00b6 movzbl rm8 r32
 dpXP 00b7 movzwl rm16 r32
 G   	mul			# Unsigned multiply
-m    f704 00000	m32
+Am   f704 mul	m32
 m    f604 mulb	rm8 al
 m    f604 mulb	rm8
 wm   f704 mulw	rm16 ax
@@ -682,17 +690,17 @@ wm   f704 mulw	rm16
 dm   f704 mull	rm32 eax
 dm   f704 mull	rm32
 G   	neg		# Negate
-ml   f703 00000	m32
+Aml  f703 neg	m32
 ml   f603 negb	rm8
 wml  f703 negw	rm16
 dml  f703 negl	rm32
 G   	not		# Invert bits
-ml   f702 00000	m32
+Aml  f702 not	m32
 ml   f602 notb	rm8
 wml  f702 notw	rm16
 dml  f702 notl	rm32
 G   	or	# Logical inclusive OR
-ml   8301 00000	imm8s m32
+Aml  8301 or	imm8s m32
 dml  8301 orl	imm8s rm32
 wml  8301 orw	imm8s rm16
 l    000c orb	imm8 al
@@ -752,9 +760,9 @@ G   	pushf		# Push flags
 w    009c pushfw
 d    009c pushfl
 G   	rcl		# Rotate carry left
-m    d102 00000	con1 m32
-m    d302 00000	cl m32
-m    c102 00000	imm8 m32
+Am   d102 rcl	con1 m32
+Am   d302 rcl	cl m32
+Am   c102 rcl	imm8 m32
 m    d002 rclb	con1 rm8
 m    d202 rclb	cl rm8
 m    c002 rclb	imm8 rm8
@@ -765,9 +773,9 @@ dm   d102 rcll	con1 rm32
 dm   d302 rcll	cl rm32
 dm   c102 rcll	imm8 rm32
 G   	rcr		# Rotate carry right
-m    d103 00000	con1 m32
-m    d303 00000	cl m32
-m    c103 00000	imm8 m32
+Am   d103 rcr	con1 m32
+Am   d303 rcr	cl m32
+Am   c103 rcr	imm8 m32
 m    d003 rcrb	con1 rm8
 m    d203 rcrb	cl rm8
 m    c003 rcrb	imm8 rm8
@@ -778,9 +786,9 @@ dm   d103 rcrl	con1 rm32
 dm   d303 rcrl	cl rm32
 dm   c103 rcrl	imm8 rm32
 G   	rol		# Rotate left
-m    d100 00000	con1 m32
-m    d300 00000	cl m32
-m    c100 00000	imm8 m32
+Am   d100 rol	con1 m32
+Am   d300 rol	cl m32
+Am   c100 rol	imm8 m32
 m    d000 rolb	con1 rm8
 m    d200 rolb	cl rm8
 m    c000 rolb	imm8 rm8
@@ -791,9 +799,9 @@ dm   d100 roll	con1 rm32
 dm   d300 roll	cl rm32
 dm   c100 roll	imm8 rm32
 G   	ror		# Rotate right
-m    d101 00000	con1 m32
-m    d301 00000	cl m32
-m    c101 00000	imm8 m32
+Am   d101 ror	con1 m32
+Am   d301 ror	cl m32
+Am   c101 ror	imm8 m32
 m    d001 rorb	con1 rm8
 m    d201 rorb	cl rm8
 m    c001 rorb	imm8 rm8
@@ -804,9 +812,9 @@ dm   d101 rorl	con1 rm32
 dm   d301 rorl	cl rm32
 dm   c101 rorl	imm8 rm32
 G   	sal		# Shift arithmetic left
-m    d104 00000	con1 m32
-m    d304 00000	cl m32
-m    c104 00000	imm8 m32
+Am   d104 sal	con1 m32
+Am   d304 sal	cl m32
+Am   c104 sal	imm8 m32
 m    d004 salb	con1 rm8
 m    d204 salb	cl rm8
 m    c004 salb	imm8 rm8
@@ -817,9 +825,9 @@ dm   d104 sall	con1 rm32
 dm   d304 sall	cl rm32
 dm   c104 sall	imm8 rm32
 G   	shl		# Shift arithmetic left
-m    d104 00000	con1 m32
-m    d304 00000	cl m32
-m    c104 00000	imm8 m32
+Am   d104 shl	con1 m32
+Am   d304 shl	cl m32
+Am   c104 shl	imm8 m32
 m    d004 shlb	con1 rm8
 m    d204 shlb	cl rm8
 m    c004 shlb	imm8 rm8
@@ -830,9 +838,9 @@ dm   d104 shll	con1 rm32
 dm   d304 shll	cl rm32
 dm   c104 shll	imm8 rm32
 G   	sar		# Shift arithmetic right
-m    d107 00000	con1 m32
-m    d307 00000	cl m32
-m    c107 00000	imm8 m32
+Am   d107 sar	con1 m32
+Am   d307 sar	cl m32
+Am   c107 sar	imm8 m32
 m    d007 sarb	con1 rm8
 m    d207 sarb	cl rm8
 m    c007 sarb	imm8 rm8
@@ -843,9 +851,9 @@ dm   d107 sarl	con1 rm32
 dm   d307 sarl	cl rm32
 dm   c107 sarl	imm8 rm32
 G   	shr		# Shift right
-m    d105 00000	con1 m32
-m    d305 00000	cl m32
-m    c105 00000	imm8 m32
+Am   d105 shr	con1 m32
+Am   d305 shr	cl m32
+Am   c105 shr	imm8 m32
 m    d005 shrb	con1 rm8
 m    d205 shrb	cl rm8
 m    c005 shrb	imm8 rm8
@@ -856,7 +864,7 @@ dm   d105 shrl	con1 rm32
 dm   d305 shrl	cl rm32
 dm   c105 shrl	imm8 rm32
 G   	sbb	# Subtract with borrow
-ml   8303 00000	imm8s rm32
+Aml  8303 sbb	imm8s rm32
 dml  8303 sbbl	imm8s rm32
 wml  8303 sbbw	imm8s rm16
 l    001c sbbb	imm8 al
@@ -885,7 +893,7 @@ dp   00ad shrdl	cl r32 rm32
 wp   00ad shrdw r16 rm16
 dp   00ad shrdl r32 rm32
 G   	sub	# Subtract
-ml   8305 00000	imm8s m32
+Aml  8305 sub	imm8s m32
 dml  8305 subl	imm8s rm32
 wml  8305 subw	imm8s rm16
 l    002c subb	imm8 al
@@ -902,7 +910,7 @@ lP   0028 subb	r8 rm8
 wlP  0029 subw	r16 rm16
 dlP  0029 subl	r32 rm32
 G   	test	# Logical compare
-m    f600 00000	imm8 m32
+Am   f600 test	imm8 m32
 -    00a8 testb	imm8 al
 w    00a9 testw	imm16 ax
 d    00a9 testl	imm32 eax
@@ -926,7 +934,7 @@ lP   0086 xchgb r8 rm8
 wlP  0087 xchgw	r16 rm16
 dlP  0087 xchgl	r32 rm32
 G   	xor	# Logical exclusive OR
-ml   8306 00000	imm8s m32
+Aml  8306 xor	imm8s m32
 dml  8306 xorl	imm8s rm32
 wml  8306 xorw	imm8s rm16
 l    0034 xorb	imm8 al

@@ -72,7 +72,7 @@ static long number = 0;
 static char token[256], *tp;
 
 static int lastChar;	/* last Character in */
-static short vctr, ccnt, scnt, dcnt;
+static short vctr, scnt, dcnt;
 static symt *stype;
 static short ytype;
 
@@ -290,6 +290,7 @@ getLine()
 				fswitch = fswitchX;
 				bswitch = bswitchX;
 
+				dodefs();
 				outLine((char *)NULL, 0);
 				continue;
 			}
@@ -578,28 +579,29 @@ yylex()
 			RSTATE(TOKEN, WHITE)
 		}
 		/* pos == OPCODE */
-		if (-1 == (opIx = opLookUp(token))) {
+		if (NULL != (macFound = 
+		   macLookUp(token, MACTYPE))) {
 			static opc smac = { /* fake opcode */
 				0, S_MAC };
 
-			if (NULL == (macFound = 
-			   macLookUp(token, MACTYPE))) {
-				if (!strcmp(token, ".")) {
-					yylval.t = token;
-					pos = OPCODE;
-					RSTATE(TOKEN, WHITE)
-				}
-
-				yyerror("Invalid opcode: '%s'", token);
-				/* The string in the opcode position is
-				 * not one of our opcodes or one of
-				 * your macros. */
-				RSTATE(NL, INITIAL)
-			}
 			yylval.o = &smac; /* macro expansion */
 			RSTATE(CMD, CSTATE)
 		}
-		return(doOp(opIx));
+
+		if (-1 != (opIx = opLookUp(token)))
+			return(doOp(opIx));
+
+		if (!strcmp(token, ".")) {
+			yylval.t = token;
+			pos = OPCODE;
+			RSTATE(TOKEN, WHITE)
+		}
+
+		yyerror("Invalid opcode: '%s'", token);
+		/* The string in the opcode position is
+		 * not one of our opcodes or one of
+		 * your macros. */
+		RSTATE(NL, INITIAL)
 
 	case DSTATE:	/* eat whole line for define */
 		switch(c) {
@@ -634,7 +636,7 @@ yylex()
 	case CSTATE: /* pick up parms on macro expansion */
 		state = psw = INTOKEN;
 		*(tp = token) = '\0';
-		scnt = dcnt = pcnt = ccnt = bcnt = 0;
+		scnt = dcnt = pcnt = bcnt = 0;
 		vctr = 1;
 		switch(c) {
 		case 0:
@@ -662,12 +664,6 @@ yylex()
 		case ')':
 			if (pcnt)
 				pcnt -= vctr;
-			break;
-		case '{':
-			ccnt += vctr; break;
-		case '}':
-			if (ccnt)
-				ccnt -= vctr;
 			break;
 		case '[':
 			bcnt += vctr; break;
@@ -700,7 +696,7 @@ yylex()
 				break;
 		case 0:
 		case '\n':
-			if (pcnt | ccnt | bcnt | scnt | dcnt) {
+			if (pcnt | bcnt | scnt | dcnt) {
 				yyerror("Unmatched bracket in parmeter");
 		/* Line ended leaving an open bracket or parenthesis. */
 				RSTATE(NL, INITIAL)
@@ -711,7 +707,7 @@ yylex()
 				RSTATE(TOKEN, CSTATE)
 			NEWS(CSTATE)
 		case ',':
-			if (pcnt | bcnt | ccnt | scnt | dcnt)
+			if (pcnt | bcnt | scnt | dcnt)
 				break;
 			--bp;
 			*tp = '\0';
@@ -1080,10 +1076,13 @@ yylex()
 		}
 		if (!number) {
 			yyerror("Cannot insert \\0 in string");
-			/* \e0 terminates strings. Instead of
+			/* NUL (\e0) terminates strings.
+			 * Instead of
 			 * .DM
 			 *	.byte	"hello\en\e0"
-			 * use
+			 * .DE
+			 * use:
+			 * .DM
 			 *	.byte	"hello\en", 0
 			 * .DE */
 		}

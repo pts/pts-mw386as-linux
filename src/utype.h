@@ -11,7 +11,7 @@
  * Indices 0 and 129 to 256 are nonASCII characters.
  */
 #define	_CTYPEN	257			/* Table size			*/
-extern	unsigned char _utype[_CTYPEN];	/* Type table			*/
+extern	readonly unsigned char _utype[_CTYPEN];	/* Type table			*/
 #define	_U	0x01			/* Upper case alphabetic	*/
 #define	_L	0x02			/* Lower case alphabetic	*/
 #define	_A	(_U|_L)			/* Alphabetic			*/

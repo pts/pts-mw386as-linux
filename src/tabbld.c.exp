@@ -563,21 +563,34 @@ register funs *f;
  */
 opBld()
 {
+	char operand[3][10];
 	register opts *this;
 	register funs *f;
 	int i, j, k;
 
-	if (op3[0]) {
+	/* m[0-9]+ are all really m at this level */
+	strcpy(operand[0], op1);
+	strcpy(operand[1], op2);
+	strcpy(operand[2], op3);
+	for (i = 0; i < 3; i++) {
+		if ('m' == operand[i][0] && 
+		    '0' <= operand[i][1] &&
+		    '9' >= operand[i][1])
+			strcpy(operand[i], "m8");
+	}
+
+	if (operand[2][0]) {
 		ct = 3;
-		sprintf(fname, "S_%04x_%s_%s_%s", opt, op1, op2, op3);
+		sprintf(fname, "S_%04x_%s_%s_%s",
+			opt, operand[0], operand[1], operand[2]);
 	}
-	else if (op2[0]) {
+	else if (operand[1][0]) {
 		ct = 2;
-		sprintf(fname, "S_%04x_%s_%s", opt, op1, op2);
+		sprintf(fname, "S_%04x_%s_%s", opt, operand[0], operand[1]);
 	}
-	else if (op1[0]) {
+	else if (operand[0][0]) {
 		ct = 1;
-		sprintf(fname, "S_%04x_%s", opt, op1);
+		sprintf(fname, "S_%04x_%s", opt, operand[0]);
 	}
 	else {
 		ct = 0;
@@ -597,9 +610,9 @@ opBld()
 		f->opt = opt;
 		f->operands = ct;
 		f->type = "OP";
-		f->ap[0] = findOpr(op1);
-		f->ap[1] = findOpr(op2);
-		f->ap[2] = findOpr(op3);
+		f->ap[0] = findOpr(operand[0]);
+		f->ap[1] = findOpr(operand[1]);
+		f->ap[2] = findOpr(operand[2]);
 	}
 
 	i = opct;

@@ -105,7 +105,7 @@ symGlob(number)
 			case NUMBER: /* delete equ */
 				if ((2 == pass) && (sp->flag & S_EXDEF)) {
 					sp->num = number++;
-					outSym(sp);
+					outSym(sp, 1);
 				}
 				sp->type = IDENTIFIER;
 				sp->flag = S_UNDEF;
@@ -120,7 +120,7 @@ symGlob(number)
 
 				if((2 == pass) && !notSym(sp)) {
 					sp->num = number++;
-					outSym(sp);
+					outSym(sp, 1);
 				}
 			}
 			psp = &(sp->next);	/* follow list */
@@ -163,7 +163,8 @@ char *id;
 	else
 		yyerror("Undefined symbol '%s'", id);
 		/* A symbol was used without defining it or using
-		 * a \fB-g\fR option. You must define local symbols */
+		 * a \fB-g\fR option.
+		 * You must define local symbols. */
 }
 
 /*
@@ -359,10 +360,13 @@ char *id;
 	short i, l;
 
 	l = strlen(id);
-	for(i = hash(id) % OPCOUNT; -1 != i; i = op->next)
+	for(i = hash(id) % OPCOUNT; -1 != i; i = op->next) {
 		if((l == (op = hashCodes + i)->nlen) &&
-		   !memcmp(id, (charLump + op->nameIx), l))
+		   !memcmp(id, (charLump + op->nameIx), l)) {
+			choices = op->count;
 			return(op->prefIx);
+		}
+	}
 	return(-1);
 }
 

@@ -8,10 +8,9 @@
  *	  1 <= n <= 128	ASCII character n-1	[NUL, ..., DEL]
  *	129 <= n <= 256	NonASCII character n-1	[0x80, ... 0xFF]
  */
-
 #include "utype.h"
 
-unsigned char _utype[_CTYPEN] = {
+readonly unsigned char _utype[_CTYPEN] = {
 	0,				/* EOF				*/
 	_C,	_C,	_C,	_C,	/* NUL	SOH	STX	ETX	*/
 	_C,	_C,	_C,	_C,	/* EOT	ENQ	ACK	BEL	*/

@@ -134,8 +134,8 @@ short n;
 
 	if(NULL == trueMac)
 		yyerror(".shift not in macro");
-		/* \fB.shift\fR shifts macro parameters. It has no meaning
-		 * outside a macro. */
+		/* \fB.shift\fR shifts macro parameters.
+		 * It has no meaning outside a macro. */
 	for(pp = &(trueMac->parms); NULL != (p = *pp); pp = &(p->next)) {
 		if(--n == 0) {
 			*pp = p->next;

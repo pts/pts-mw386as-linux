@@ -86,28 +86,6 @@ register expr *oper;
 }
 
 /*
- * Convienience function for checkop.
- * Checks if displacment is byte or longer.
- */
-static void
-setDisp(this)
-register expr *this;
-{
-	long d;
-
-	if ((NULL != this->ref) ||
-	    (d = this->exp) < -128 || d > 127) {
-		uflags |= U_DSP;
-		mod = 2;
-	}
-	else {
-		uflags |= U_DSP8;
-		mod = 1;
-	}
-	displ = this;
-}
-
-/*
  * Check if operator validly fits mode.
  * return 1 for false zero for true.
  */
@@ -369,11 +347,21 @@ unsigned short type;
 			return (0);
 
 		case T_RID:
-			setDisp(this);
+			if ((NULL != this->ref) ||
+			    (d = this->exp) < -128 || d > 127) {
+				uflags |= U_DSP;
+				mod = 2;
+			}
+			else {
+				uflags |= U_DSP8;
+				mod = 1;
+			}
+
 			if (4 == (rm = r1->loc)) { /* disp (%esp) */
 				base = 4;	/* base = %esp */
 				index = 4;	/* no index */
 			}
+			displ = this;
 			return (0);
 
 		case T_R:	/* eax | ecx || edx || ebx || esi || edi */
@@ -432,10 +420,19 @@ unsigned short type;
 				return (1);
 
 			base = r1->loc;
-			setDisp(this);
+			if ((NULL != this->ref) ||
+			    (d = this->exp) < -128 || d > 127) {
+				uflags |= U_DSP;
+				mod = 2;
+			}
+			else {
+				uflags |= U_DSP8;
+				mod = 1;
+			}
 
 			rm = 4;
 			scale = this->scale;
+			displ = this;
 			return (0);
 
 		case T_RIDS:
@@ -503,15 +500,30 @@ unsigned short type;
 				return (1);
 			}
 
-			setDisp(this);
+			if ((NULL != this->ref) ||
+			    (d = this->exp) < -128 || d > 127) {
+				uflags |= U_DSP;
+				mod = 2;
+			}
+			else {
+				uflags |= U_DSP8;
+				mod = 1;
+			}
+			displ = this;
 			return (0);
 
 		case T_RIXD:	/* register index displacment */
-			if (this->exp < -32768L || this->exp > 65535L)
-				return(1);
-
-			setDisp(this);
+			if ((NULL != this->ref) ||
+			    (d = this->exp) < -128 || d > 127) {
+				uflags |= U_DSP;
+				mod = 2;
+			}
+			else {
+				uflags |= U_DSP8;
+				mod = 1;
+			}
 			/* fall through */
+			displ = this;
 
 		case T_RIX:	/* register index */
 			if (T_RIX == this->mode)

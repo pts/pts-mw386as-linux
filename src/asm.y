@@ -519,10 +519,8 @@ numexp	: NUMBER {
 		$$ = $1; }
 	| LPAREN numexp RPAREN {
 		$$ = $2; }
-	
 	| addexp MINUS addexp {
 		ckseg($1, $3); $$ = $1->loc - $3->loc; }
-
 	| addexp COMPARISON addexp {
 		ckseg($1, $3); $$ = compare((int)$2, $1->loc - $3->loc); }
 	| numexp COMPARISON numexp {

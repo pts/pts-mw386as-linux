@@ -219,7 +219,7 @@ register seg *s;
 static void
 limiter(n)
 {
-	if (lswitch && (ct + n) >= LIMIT) {
+	if (lswitch && (ct + n) > LIMIT) {
 		putchar('\n');
 		ct = 0;
 	}
@@ -247,8 +247,6 @@ unsigned short b;
 	if (!lswitch)
 		return;
 
-	limiter(0);
-
 	if (!ct) {
 		sTitle();
 		pos = 4;
@@ -270,8 +268,10 @@ unsigned short b;
 outab(b)
 unsigned short b;
 {
-	if (2 == pass)
+	if (2 == pass) {
+		limiter(1);
 		outlst(b);
+	}
 	dot.loc++;	/* update location ctr */
 }
 
@@ -331,20 +331,12 @@ unsigned sw;
 	bp->r_type   = sw;
 	bp->r_vaddr  = dot.loc + cseg->s_vaddr;
 
-#if 0
-	/*
-	 * If this symbol is not for the symbol table
-	 * relocation record uses the segment symbols
-	 */
-	if (!sp->num)
-#else
 	/*
 	 * Only use symbol references when forced
 	 * seems to be required by a bug in the
 	 * ESIX linker.
 	 */
 	if (!(sp->flag & (S_EXREF|S_COMMON)))
-#endif
 		bp->r_symndx = sp->sg - 1;
 	else {
 		bp->r_symndx = sp->num;
@@ -360,6 +352,15 @@ unsigned sw;
 	if ((sp->sg > 1) && !(sp->flag & S_COMMON))
 		rv += segs[sp->sg - 1].s_vaddr;
 
+#if 0
+#define dv(v) printf(" " #v "= %x\n", v)
+	dv(sp->flag);
+	dv(sp->size);
+	dv(sp->loc);
+	dv(oper->exp);
+	dv(sw);
+	dv(rv);
+#endif
 	return(rv);
 }
 		
@@ -371,6 +372,7 @@ expr *oper;
 int sw;		/* 0 = Relative address, 1 = PC relative address */
 {
 	if (2 == pass) {
+		limiter(1);
 		if (sw)
 			outlst((unsigned short)(relOut(oper, R_PCRBYTE) -
 						(dot.loc + 1)));
@@ -507,7 +509,7 @@ char *fn;
 	if ((cseg->curadd = dot.loc) > cseg->hiadd)
 		cseg->hiadd = cseg->curadd;
 	cseg = segs;	/* return to .text */
-	pass = dot.sg = 1;
+	longMode = pass = dot.sg = 1;
 	defCt = macNo = dot.loc = 0;
 
 	if (indPass()) {	/* take an extra pass */

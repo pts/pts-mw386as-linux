@@ -5,6 +5,16 @@
 #include <errno.h>
 
 /*
+ * Show line numbers if no listing.
+ */
+static void
+showLine()
+{
+	if (!((NULL == inpc) || lswitchX))
+		printf("%d: %s: ", inpc->lineNo, inpc->name);
+}
+
+/*
  * Print error msg and die.
  */
 /*VARARGS1*/
@@ -17,10 +27,8 @@ char *s;
 	if (Qswitch)
 		exit(1);
 
-	if ((NULL == inpc) || lswitchX)
-		printf("%r\n", &s);
-	else
-		printf("%d: %s: %r\n", inpc->lineNo, inpc->name, &s);
+	showLine();
+	printf("%r\n", &s);
 
 	if (0 != (errno = save))
 		perror("errno reports");
@@ -44,10 +52,8 @@ char *s;
 	if (Qswitch)
 		return;
 
-	if ((NULL == inpc) || lswitchX)
-		printf("%r\n", &s);
-	else
-		printf("%d: %s: %r\n", inpc->lineNo, inpc->name, &s);
+	showLine();
+	printf("%r\n", &s);
 }
 
 /*
@@ -58,12 +64,10 @@ void
 yywarn(s)
 char *s;
 {
-	if ((2 != pass) || wswitch)
+	if ((2 != pass) || wswitch || Qswitch)
 		return;
 	sTitle();
 
-	if ((NULL == inpc) || lswitchX)
-		printf("Warning %r\n", &s);
-	else
-		printf("%d: %s: Warning %r\n", inpc->lineNo, inpc->name, &s);
+	showLine();
+	printf("Warning %r\n", &s);
 }

@@ -13,11 +13,11 @@
 #define REP_INSTR	0x0200	/* R */
 #define AFTER_REP	0x0400	/* r */
 #define XTENDS		0x0800	/* X */
-#define AMBIG_MATCH	0x1000	/* set when opcode starts 0 by tabbld */
-#define FLOAT_ESC	0x4000	/* F */
+#define AMBIG_MATCH	0x1000	/* A */
+#define FLOAT_ESC	0x2000	/* F */
 
 #ifndef T_IMM
 	/* Not forwarded to symtab.c or used in as */
-#define USE_REG		0x1000	/* P for document only */
-#define INDEF_JMP	0x2000	/* i */
+#define USE_REG		0x10000L /* P for document only */
+#define INDEF_JMP	0x20000L /* i */
 #endif

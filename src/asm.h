@@ -20,6 +20,7 @@ typedef struct sym sym;		/* allocated  symbol table entry */
 typedef struct symt  symt;	/* opcode table entry */
 typedef struct nhash nhash;	/* hash table entry */
 typedef struct psym psym;	/* predefined symbol table entry */
+typedef struct symdef symdef;	/* defined in c_out.c uses SYMENT & AUXENT */
 
 struct expr {	/* generated 80386 address stuff */
 	expr *next;
@@ -47,7 +48,7 @@ struct expr {	/* generated 80386 address stuff */
 #define T_FP	12	/* %st( n ) */
 
 struct opc {	/* slice in pref tab */
-	short code;	/* opcode or -1 */
+	short code;	/* opcode */
 	short kind;	/* index to symt table */
 };
 
@@ -61,7 +62,8 @@ struct symt {	/* Opcode symbol type. */
 struct nhash {	/* name hash entry */
 	short next;			/* index to next symbol same hash */
 	short nameIx;			/* index into charLump */
-	short nlen;			/* length of name */
+	char  nlen;			/* length of name */
+	char  count;			/* match count in prefTab */
 	short prefIx;			/* index into prefTab */
 };
 
@@ -74,7 +76,7 @@ struct psym {	/* predefined symbol table entry */
 	short	flag;			/* flag bits */
 	sym 	*ref;			/* base copy of this symbol on symtab */
 	short	num;			/* symbol number for relocation */
-	short	statement;		/* statement no of definition */
+	int	statement;		/* statement no of definition */
 	char	*name;			/* symbol name */
 };
 
@@ -87,7 +89,7 @@ struct sym {	/* allocated symbol table entry */
 	short	flag;			/* flag bits */
 	sym 	*ref;			/* base copy of this symbol on symtab */
 	short	num;			/* symbol number for relocation */
-	short	statement;		/* statement no of definition */
+	int	statement;		/* statement no of definition */
 	char	name[1];		/* symbol name */
 };
 
@@ -222,5 +224,5 @@ struct data {	/* misc data item */
 #define POPA	  0x61
 #define AAM	  ((unsigned short)0xD40A)
 #define POP_MEM	  ((unsigned short)0x8F00)
-
+#define NON_OP	  ((unsigned short)0x0201)	/* not an op code */
 #include "asme.h"

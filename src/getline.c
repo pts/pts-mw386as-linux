@@ -41,7 +41,7 @@ addchr(c)
 	while (i >= size)
 		if (NULL == (line = realloc(line, size += 80)))
 			fatal("Out of space");
-			/* A malloc() failed */
+			/* NODOC */
 	line[i++] = c;
 }
 
