@@ -336,7 +336,15 @@ buildOp()
 			optDoc |= FLOAT_PFX;	break;
 		case 'p':
 			optDoc |= PFX_0F;	break;
-		case 'm':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
 			optDoc |= MODRM_BYTE;	break;
 		case 'a':
 			optDoc |= ADD_REG;	break;

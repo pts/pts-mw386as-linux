@@ -51,6 +51,10 @@ static
 notSym(sp)
 register sym *sp;
 {
+	/* don't out put symbols given numbers already */
+	if (sp->num)
+		return (1);
+
 	/* don't output unused .globls */
 	if ((sp->flag & S_EXREF) && !(sp->flag & S_USED))
 		return (1);
@@ -81,7 +85,6 @@ register sym *sp;
 }
 
 /*
- * Output symbol table to object file.
  * Give numbers to all identifier symbols.
  * Mark undefined symbols as exref if -g.
  * Delete symbols defined by macro, equs and equ.
@@ -164,7 +167,7 @@ int number;
 	for(sp = symhash[i = hash(id) % SHASH];
 	    sp != NULL;
 	    sp = sp->next) {
-		if(!strcmp(id, SYMNAME(sp)) && sp->num) {
+		if(!strcmp(id, SYMNAME(sp))) {
 			sp->num = number;
 			break;
 		}

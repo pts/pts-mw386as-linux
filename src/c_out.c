@@ -551,9 +551,12 @@ char *fn;
 	if ((cseg->curadd = dot.loc) > cseg->hiadd)
 		cseg->hiadd = cseg->curadd;
 	cseg = segs;	/* return to .text */
-	longMode = pass = dot.sg = 1;
 	defCt = macNo = dot.loc = 0;
-	txtAt     = DEBUG_RECS;
+	if ((txtAt = DEBUG_RECS) && !pass) {
+		xpass = 1;	/* force another pass */
+		symptr = syms = alloc(coffDefCt * sizeof(*syms));
+	}
+	longMode = pass = dot.sg = 1;
 	if (indPass()) {	/* take an extra pass */
 		usects = 0;
 		for (s = segs; s < segend; s++) {
@@ -569,9 +572,6 @@ char *fn;
 		coffDefCt = coffAuxCt = coffEfcnCt = 0;
 		return;
 	}
-
-	if (coffDefCt)
-		symptr = syms = alloc(coffDefCt * sizeof(*syms));
 
 	pass   = 2;	/* last pass */
 	linect = nlpp;
@@ -838,6 +838,9 @@ parm *p;
 coffFile(s)
 parm *s;
 {
+#ifdef NODEBUG
+	return;
+#else
 	coffDefCt++;
 	coffAuxCt++;
 	if (2 == pass) {
@@ -856,28 +859,38 @@ parm *s;
 		symptr->name = ".file";
 		symptr++;
 	}
+#endif
 }
 
 coffDef(s)
 parm *s;
 {
-	if (2 == pass) {	/* initialize new symbol */
+#ifdef NODEBUG
+	return;
+#else
+	if (pass) {	/* initialize new symbol */
 		if (defSw)
 			yywarn("missing .endef");
 		symptr->scnum = N_ABS;
+		if (NULL != symptr->name)
+			free(symptr->name);
 		symptr->name  = scpy(s->str, 0);
 		symptr->symno = DEBUG_RECS;
 		defSw = 1;
 	}
+#endif
 }
 
 coffEndef()
 {
+#ifdef NODEBUG
+	return;
+#else
+	if ((1 == pass) && (symptr->scnum != N_DEBUG))
+		symReNumber(symptr->name, DEBUG_RECS);
+
 	if (2 == pass) {
 		register struct xsym *s;
-
-		if (symptr->scnum > 0)
-			symReNumber(symptr->name, DEBUG_RECS);
 
 		switch (symptr->sclass) {
 		case C_BLOCK:
@@ -921,6 +934,7 @@ coffEndef()
 	if (!efcnSw)			/* They don't have aux records */
 		coffAuxCt += auxSw;
 	auxSw = defSw = efcnSw = 0;
+#endif
 }
 
 /*
@@ -929,6 +943,9 @@ coffEndef()
 coffType(n)
 long n;
 {
+#ifdef NODEBUG
+	return;
+#else
 	if (ISFCN(n)) { /* function build a line record */
 		register LINENO *bp;
 
@@ -951,11 +968,15 @@ long n;
 			/* Debug command .type must be in .endif */
 		symptr->type = n;
 	}
+#endif
 }
 
 coffVal(item)
 data *item;
 {
+#ifdef NODEBUG
+	return;
+#else
 	SYMENT *s;
 
 	if (2 != pass)
@@ -978,37 +999,49 @@ data *item;
 	}
 	else
 	 	symptr->value = item->d.l;
+#endif
 }
 
 coffScl(n)
 long n;
 {
+#ifdef NODEBUG
+	return;
+#else
 	if (C_EFCN == n)
 		efcnSw = 1;
-	if (2 != pass)
+	if (!pass)
 		return;
 	if (!defSw)
 		yywarn(".scl must follow .def"); /* */
 	if (ISTAG(n))
 		symptr->scnum = N_DEBUG;
 	symptr->sclass = n;
+#endif
 }
 
 coffSize(n)
 long n;
 {
+#ifdef NODEBUG
+	return;
+#else
 	auxSw = 1;
 	if (2 != pass)
 		return;
 	if (!defSw)
 		yywarn(".size must follow .def"); /* */
 	symptr->aux.ae_size = n;
+#endif
 }
 
 coffDim(n, d)
 long n;
 int d;
 {
+#ifdef NODEBUG
+	return;
+#else
 	auxSw = 1;
 	if (2 != pass)
 		return;
@@ -1022,11 +1055,15 @@ int d;
 		return;
 	}
 	symptr->aux.ae_dimen[d] = n;
+#endif
 }
 
 coffTag(p)
 parm *p;
 {
+#ifdef NODEBUG
+	return;
+#else
 	struct xsym *s;
 
 	auxSw = 1;
@@ -1045,11 +1082,15 @@ parm *p;
 		/* This tag fails to connect to an earlier unconnected .def
 		 * of the same name and a proper n_sclass.
 		 */
+#endif
 }
 
 coffLn(n)
 long n;
 {
+#ifdef NODEBUG
+	return;
+#else
 	register LINENO *bp;
 
 	if (2 != pass)
@@ -1062,17 +1103,22 @@ long n;
 		if (bp == (cseg->lineBuf + (LINEBUF - 1)))
 			outLineRec(cseg);
 	}
+#endif
 }
 
 coffLine(n)
 long n;
 {
+#ifdef NODEBUG
+	return;
+#else
 	auxSw = 1;
 	if (2 != pass)
 		return;
 	if (!defSw)
 		yywarn(".line must follow .def"); /* */
 	symptr->aux.ae_lnno = n;	
+#endif
 }
 
 /*
