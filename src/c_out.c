@@ -508,7 +508,7 @@ register sym *sp;
 		strOff += i + 1;
 	}
 	else
-		strcpy(s._n._n_name, name);
+		strncpy(s._n._n_name, name, SYMNMLEN);
 
 	if (sp->sg < 0)
 		s.n_scnum = sp->sg;
@@ -911,18 +911,27 @@ coffEndef()
 
 		case C_EFCN:
 			for (s = symptr - 1; s != syms; s--) {
-				if (ISFCN(s->type) &&
-				    !strcmp(symptr->name, s->name)) {
-					s->aux.ae_fsize = symptr->value -
-							  s->value;
-					s->aux.ae_endndx = DEBUG_RECS;
-					break;
+				if (!strcmp(symptr->name, s->name)) {
+					short type = s->type;
+
+					if (ISFCN(type))
+						break;
+					type >>= N_TSHIFT;
+					if (ISFCN(type))
+						break;
+					type >>= N_TSHIFT;
+					if (ISFCN(type))
+						break;
 				}
 			}
 			if (s == syms)
 				yywarn(".type -1 does not connect");
 				/* A type of -1 C_EFCN does not connect to
 				 * a .def of a function */
+			else {
+				s->aux.ae_fsize = symptr->value - s->value;
+				s->aux.ae_endndx = DEBUG_RECS;
+			}
 		}
 		symptr->numaux = auxSw;
 		symptr++;
@@ -1149,7 +1158,7 @@ writeDebug()
 			strOff += i + 1;
 		}
 		else
-			strcpy(sym.n_name, s->name);
+			strncpy(sym.n_name, s->name, SYMNMLEN);
 		
 		ct++;
 		owrite(&sym, SYMESZ);
@@ -1185,14 +1194,14 @@ opc *op;
 parm *p;
 long n;
 {
-	sym *s;
-
 	if (NULL == p) {
 		yyerror(".comm must have tag");
 		/* The format of \fB.comm\fR is \fB.comm name, size\fR. */
 		return;
 	}
 	if (op->code == 2) {
+		sym *s;
+
 		s = symLookUp(p->str, S_LOCAL, 0L, op->code + 1);
 		s->size = n;
 		s->flag = S_EXDEF|S_COMMON;
