@@ -364,6 +364,9 @@ line	: label CMD plist NL { /* assembler command with parms */
 		dcmd($1, $2, $3); }
 	| label OP operand NL {	/* opcode operands */
 		buildind($1, $2, $3); }
+	| label OP OP NL {	/* built by rep instr */
+		buildind($1, $2, NULL);
+		buildind(NULL, $3, NULL ); }
 	| label NL {	/* label alone on line */
 		buildlab($1); }
 	| error NL {	/* syntax error */

@@ -4,6 +4,7 @@
  */
 #include <utype.h>
 #include <asm.h>
+#include <asflags.h>
 #include <y_tab.h>
 #include <symtab.h>
 
@@ -465,8 +466,10 @@ doOp(opIx)
 	switch(ytype = stype->type) {
 	case NCMD:
 		RSTATE(ytype, ENDLINE)
-	case ICMD:
 	case OP:
+		if (stype->bldr & REP_INSTR)
+			pos = OPCODE;
+	case ICMD:
 	case DATA:
 		RSTATE(ytype, WHITE)
 	case ECMD:
@@ -570,28 +573,28 @@ yylex()
 			}
 			RSTATE(sp->type, WHITE)
 		}
+
+		/* pos != OPERAND may be opcode or label */
+		if (':' != c) {
+			if (NULL != (macFound = macLookUp(token, MACTYPE))) {
+				static opc smac = { /* fake opcode */
+					0, S_MAC };
+
+				yylval.o = &smac; /* macro expansion */
+				RSTATE(CMD, CSTATE)
+			}
+
+			if (-1 != (opIx = opLookUp(token)))
+				return(doOp(opIx));
+
+			if (!strcmp(token, ".")) {
+				yylval.t = token;
+				pos = OPCODE;
+				RSTATE(TOKEN, WHITE)
+			}
+		}
+
 		if ((pos == LABEL) || (':' == c)) {
-			if (('.' == token[0]) &&
-				 (-1 != (opIx = opLookUp(token))))
-					return(doOp(opIx));
-			yylval.t = token;
-			pos = OPCODE;
-			RSTATE(TOKEN, WHITE)
-		}
-		/* pos == OPCODE */
-		if (NULL != (macFound = 
-		   macLookUp(token, MACTYPE))) {
-			static opc smac = { /* fake opcode */
-				0, S_MAC };
-
-			yylval.o = &smac; /* macro expansion */
-			RSTATE(CMD, CSTATE)
-		}
-
-		if (-1 != (opIx = opLookUp(token)))
-			return(doOp(opIx));
-
-		if (!strcmp(token, ".")) {
 			yylval.t = token;
 			pos = OPCODE;
 			RSTATE(TOKEN, WHITE)
