@@ -1185,7 +1185,7 @@ char *name;
 		".comment", ".ctors", ".dtors"
 	};
 	static long segflag[] = {
-		STYP_TEXT, STYP_TEXT, STYP_DATA,
+		STYP_TEXT, STYP_DATA, STYP_DATA,
 		STYP_INFO, STYP_DATA, STYP_DATA
 	};
 
