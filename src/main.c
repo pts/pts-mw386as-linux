@@ -81,6 +81,8 @@ char **argv;
 	register char *p, c;
 	char *fileName;
 
+	errdev = stderr;	/* errors normally go to stderr */
+
 	initStor();		/* init storage control */
 	segInit();		/* init segment data */
 	indPass();		/* init indefinite branch logic */
@@ -142,7 +144,7 @@ char **argv;
 			break;
 
 		case 'l':	/* print a listing */
-			lswitchX ^= 1;	
+			errdev = (lswitchX ^= 1) ? stdout : stderr;
 			break;
 
 		case 'o':
@@ -174,8 +176,6 @@ char **argv;
 		/* There were no files listed on the command line. */
 
 	symInit();		/* init symbol table */
-
-	errdev = lswitchX ? stdout : stderr;
 
 	fileOpen(fileName);
 	title = scpy(fileName, 0);
