@@ -39,6 +39,7 @@ B eax %eax ? %ebx
 . moffs mem16
 . sreg %es %cs %ss %ds %fs %gs ? $0x64
 . st0 %st
+. dx %dx
 B ctlreg %cr0 %cr2 %cr3 ? %ss
 B dbreg %dr0 %dr1 %dr2 %dr3 %dr6 %dr7 ? %cr0
 B treg %tr6 %tr7 ? %ax %cr0
@@ -596,6 +597,9 @@ d    0069 imull	imm32 rm32 r32
 wtP  0069 imulw	imm16 r16
 dtP  0069 imull	imm32 r32
 G   	in		# Input from port
+-    00ec in	dx al
+w    00ed in	dx ax
+d    00ed in	dx eax
 -    00e4 inb	imm8
 w    00e5 inw	imm8
 d    00e5 inl	imm8
@@ -725,6 +729,9 @@ d    00e7 outl	imm8
 -    00ee outb	atdx
 w    00ef outw	atdx
 d    00ef outl	atdx
+-    00ee out	al dx
+w    00ef out	ax dx
+d    00ef out	eax dx
 G   	pop		# Pop a word from the stack
 wa   0058 popw	r16
 da   0058 popl	r32

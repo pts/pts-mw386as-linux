@@ -791,7 +791,7 @@ outData()
 
 	/* dump function table */
 	fprintf(ohp, "\n/* instruction types */\n");
-	fprintf(ofp, "readonly symt typTab[] = {\n");
+	fprintf(ofp, "symt typTab[] = {\n");
 	for (i = 0; i < funct;) {
 		f = funtab + i;
 		fprintf(ohp, "#define %-21s %2d\n", f->name, i);
@@ -807,7 +807,7 @@ outData()
 	fprintf(ofp, "};\n\n");
 
 	/* dump the name hash */
-	fprintf(ofp, "readonly char charLump[] = {");
+	fprintf(ofp, "char charLump[] = {");
 	i = 0;
 	for (p = allntab; *p;) {
 		switch (i++) {
@@ -833,7 +833,7 @@ outData()
 	 * for processed opcodes that need hash pointers
 	 * and zero for other processed opcodes.
 	 */
-	fprintf(ofp, "readonly opc prefTab[] = {\n");
+	fprintf(ofp, "opc prefTab[] = {\n");
 	for (lastp = i = 0; i < opct; i++) {
 		this = optab + i;
 		if (this->fun != -1)	/* non generic opcode */

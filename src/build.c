@@ -255,6 +255,13 @@ unsigned short type;
 		lflags &= ~A_SHORT;
 		return(0);
 
+	case dx:
+		if (this->mode != T_R || r1->flag != ORD_REG ||
+		    r1->size != 2 || r1->loc != 2)
+		 	return(1);
+		lflags &= ~A_SHORT;
+		return(0);
+
 	case cl:
 		return (this->mode != T_R ||
 			r1->flag != ORD_REG ||

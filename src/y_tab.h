@@ -58,7 +58,7 @@ typedef union {
 #define P_SIGN 308
 #define LEN 325
 #ifdef YYTNAMES
-extern readonly struct yytname
+extern struct yytname
 {
 	char	*tn_name;
 	int	tn_val;
