@@ -1,8 +1,8 @@
-# Object files required directly by as.386
-DESTDIR=/bin386/bin/
+DESTDIR=/bin386/bin/as/
 
+# Object files required directly by as.386
 O = main.o y_tab.o symtab.o lex.o common.o data.o space.o mwcvar.o \
- cmd.o build.o sym.o hash.o c_out.o utype.o getargs.o
+ cmd.o build.o sym.o hash.o c_out.o utype.o getargs.o strtod.o
 
 # Files required to build as.386 which are not scanned for comments
 B=Makefile fixy tabbld.c getline.c table.386 docfix.c fixdoc.c script hash.c \
@@ -23,11 +23,10 @@ K = main.c utype.h tabbld.c table.386 y_tab.c lex.c common.c data.c space.c \
  getargs.c ieee_f.c ieee_d.c getline.c asfix.c y_tab.h $H
 
 I =  -I. -I..
-CFLAGS = -A $I
+CFLAGS = -A $I -DGNU
 
 as : $O
-	cc -so $(DSTDIR)as $O
-	su root chmog 511 bin bin $(DESTDIR)$@
+	cc -so $(DESTDIR)as $O
 
 install : as fixdoc asfix
 	su root `srcpath installer` $<
