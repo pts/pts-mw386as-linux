@@ -6,12 +6,16 @@
 #include <utype.h>
 #include <symtab.h>
 
+#define WHERE 0x40A09C
+
+#define trace(n) printf("Trace %d\n", n);
+
 #define CMOD 2		/* clump every 2 bytes */
 #define LIMIT 10	/* bytes of data per line */
 #define STARTP 31	/* start source at. Must be n * 8 -1 */
 #define DATABUF 512	/* size of data buffer */
-#define RELBUF 16	/* entries in relocation buffer */
-
+#define RELBUF 128	/* entries in relocation buffer */
+#define LINEBUF 128	/* entries in line number buffer */
 #define MANSEG 3	/* Segments that must go out */
 #define ROUNDR 3	/* used to round segments */
 
@@ -31,15 +35,17 @@ struct seg {		/* coff section header */
 	/* Extra data connected with this to allow running this segment */
 	long		data_seekad;	/* next data seek address */
 	long		relo_seekad;	/* next relocation seek address */
+	long		line_seekad;	/* next line seek address */
 	long		curadd;		/* current address this segment */
 	long		hiadd;		/* hi address this pass */
-	short		segNo;		/* file output number for this seg */
 	short		segSeq;		/* Segment sequence no */
 
 	char *bp;			/* data buffer pointer */
 	RELOC *relBp;			/* relocation buffer pointer */
+	LINENO *lineBp;			/* line number buffer pointer */
 	char buf[DATABUF];		/* data buffer */
 	RELOC relBuf[RELBUF];		/* relocation entry buffer */
+	LINENO lineBuf[LINEBUF];	/* line number entry buffer */
 };
 
 static long *tracker;	/* for debugging */
@@ -48,9 +54,33 @@ static seg *segs, *segend;	/* segment bases */
 static seg *cseg;		/* current segment */
 
 static unsigned short ct, pos, sects, symbs, usects;
-static long datapos, relpos, sympos, strOff;
+static long datapos, relpos, linepos, sympos, debpos;
+static long strOff = 4;
 static long lastSeek;
 static FILE *ofp;		/* output file */
+
+static int coffDefCt;		/* count of .def in file */
+static int coffAuxCt;		/* aux records to be written */
+static int coffEfcnCt;		/* end of function records */
+#define DEBUG_RECS (coffDefCt + coffAuxCt - coffEfcnCt)
+#define USECTS (DEBUG_RECS ? usects * 2 : usects)
+static char defSw;		/* in a .def statement */
+static char auxSw;
+static char efcnSw;
+
+struct xsym {	/* Symbol for debugging becomes SYMENT and maybe auxent */
+	int	symno;
+	int	value;
+	short	scnum;
+	short	type;
+	char	sclass;
+	char	numaux;
+	AUXENT	aux;	/* aux record data */
+	char	*name;	/* name if there is one */
+};
+
+static struct xsym *syms;		/* all the debug stuff */
+static struct xsym *symptr;		/* currently build debug stuff */
 
 union word {
 	unsigned char uc[2];
@@ -61,19 +91,6 @@ union full {
 	unsigned char uc[4];
 	unsigned long ul;
 };
-
-struct symdef {
-	symdef	*next;
-	union {
-		SYMENT s;
-		AUXENT a;
-	} u;
-};
-static symdef *this;
-static long symct;
-
-#define SYM this->u.s
-#define AUX this->u.a
 
 /*
  * output spaces and tabs to a position, then output a character.
@@ -199,6 +216,21 @@ register seg *s;
 		s->relo_seekad += size;
 	}
 	s->relBp = s->relBuf;
+}
+
+/*
+ * Write Line records.
+ */
+outLineRec(s)
+register seg *s;
+{
+	register size;
+
+	if (size = (char *)s->lineBp - (char *)s->lineBuf) {
+		xwrite(s->line_seekad, (char *)s->lineBuf, size);
+		s->line_seekad += size;
+	}
+	s->lineBp = s->lineBuf;
 }
 
 /*
@@ -337,8 +369,11 @@ unsigned sw;
 	 * seems to be required by a bug in the
 	 * ESIX linker.
 	 */
-	if (!(sp->flag & (S_EXREF|S_COMMON)))
-		bp->r_symndx = sp->sg - 1;
+	if (!(sp->flag & (S_EXREF|S_COMMON))) {
+		int seg = segs[sp->sg - 1].segSeq - 1;
+
+		bp->r_symndx = DEBUG_RECS ? (seg * 2) + DEBUG_RECS : seg;
+	}
 	else {
 		bp->r_symndx = sp->num;
 		if (sp->flag & S_COMMON)
@@ -429,7 +464,7 @@ int sw;		/* 0 = Relative address, 1 = PC relative address */
 /*
  * Output symbol table string.
  */
-outSymStr (sp)
+outSymStr(sp)
 register sym *sp;
 {
 	register i;
@@ -440,11 +475,22 @@ register sym *sp;
 		owrite(name, i + 1);
 }
 
+static void showIt(sp)
+sym *sp;
+{
+	int i;
+	char *name;
+
+	i = strlen(name = SYMNAME(sp));
+	fprintf(stderr, "Trace %x, '%s' flag %d len %d num %d\n",
+		 sp, name, sp->flag, i, sp->num);
+}
+
 /*
  * output symbol table entry.
  */
 SYMENT *
-outSym(sp, writesw)
+outSym(sp)
 register sym *sp;
 {
 	static SYMENT s;
@@ -453,9 +499,11 @@ register sym *sp;
 
 	clear(&s);
 
-	name = SYMNAME(sp);
-	if ((i = strlen(name)) > SYMNMLEN) {
-		s._n._n_n._n_offset = strOff;
+	i = strlen(name = SYMNAME(sp));
+
+	if (i > SYMNMLEN) {
+		s.n_zeroes = 0;
+		s.n_offset = strOff;
 		strOff += i + 1;
 	}
 	else
@@ -485,8 +533,7 @@ register sym *sp;
 	if (s.n_scnum > 1)
 		s.n_value += segs[sp->sg - 1].s_vaddr;
 
-	if (writesw)
-		owrite((char *)&s, sizeof(s));
+	owrite((char *)&s, sizeof(s));
 	return (&s);
 }
 
@@ -505,7 +552,6 @@ char *fn;
 	cseg = segs;	/* return to .text */
 	longMode = pass = dot.sg = 1;
 	defCt = macNo = dot.loc = 0;
-
 	if (indPass()) {	/* take an extra pass */
 		usects = 0;
 		for (s = segs; s < segend; s++) {
@@ -514,15 +560,20 @@ char *fn;
 			s->segSeq = usects;
 			s->bp = s->buf;
 			s->relBp = s->relBuf;
-			s->s_nreloc = s->hiadd = s->curadd = 0;
+			s->lineBp = s->lineBuf;
+			s->s_nlnno = s->s_nreloc = s->hiadd = s->curadd = 0;
 		}
-		symGlob(usects); /* fix symbol table */
+		symGlob(DEBUG_RECS + USECTS); /* fix symbol table */
+		coffDefCt = coffAuxCt = coffEfcnCt = 0;
 		return;
 	}
 
+	if (coffDefCt)
+		symptr = syms = alloc(coffDefCt * sizeof(*syms));
+
 	pass   = 2;	/* last pass */
 	linect = nlpp;
-	usects = xaddr = datapos = relpos = 0;
+	usects = xaddr = datapos = relpos = linepos = 0;
 	ofp = xopen(fn, "wb");
 	
 	for (s = segs; s < segend; s++) {
@@ -534,14 +585,18 @@ char *fn;
 		xaddr += s->s_size = s->hiadd;
 		s->data_seekad = datapos; /* temp value */
 		s->s_relptr = relpos;
+		s->s_lnnoptr = linepos;
 		if (s->s_flags != STYP_BSS) {
 			datapos += s->hiadd;
 			relpos  += s->s_nreloc * RELSZ;
+			linepos += s->s_nlnno  * LINESZ;
 		}
 	}
 	size =  sizeof(FILEHDR) + (usects * sizeof(SCNHDR));
-	sympos = size + datapos + relpos;
-	relpos = size + datapos;
+	debpos  = size + datapos + relpos + linepos;
+	sympos  = debpos + (DEBUG_RECS * SYMESZ);
+	linepos = size + datapos + relpos;
+	relpos  = size + datapos;
 
 	if (fseek(ofp, lastSeek = sympos, 0))
 		fatal("Seek error on object file");	/**/
@@ -549,6 +604,7 @@ char *fn;
 	usects = 0;
 	for (s = segs; s < segend; s++) {
 		SYMENT sym;
+		AUXENT aux;
 
 		if (s->hiadd || usects < MANSEG)
 			usects++;
@@ -562,7 +618,15 @@ char *fn;
 		sym.n_value = s->s_vaddr;
 		strcpy(sym._n._n_name, s->s_name);
 		sym.n_scnum = usects;
+		sym.n_numaux = DEBUG_RECS ? 1 : 0;
 		owrite((char *)&sym, sizeof(sym));
+
+		if (sym.n_numaux) {
+			aux.ae_scnlen = s->s_size;
+			aux.ae_nreloc = s->s_nreloc;
+			aux.ae_nlinno = s->s_nlnno;
+			owrite((char *)&aux, sizeof(aux));
+		}
 
 		if (s->hiadd && (s->s_flags != STYP_BSS))
 			s->s_scnptr = s->data_seekad += size;
@@ -574,16 +638,19 @@ char *fn;
 		else
 			s->relo_seekad = s->s_relptr = 0;
 
+		if (s->s_nlnno && (s->s_flags != STYP_BSS))
+			s->line_seekad = s->s_lnnoptr += linepos;
+		else
+			s->line_seekad = s->s_lnnoptr = 0;
 		s->hiadd = s->curadd = 0;
 	}
 
-	strOff = 4;			/* init long symbol length */
-	symbs = symGlob(usects);	/* write symbol table */
+	sympos = ftell(ofp);	/* continue the symbol table from here */
 
-	if (strOff > 4) {
-		owrite(&strOff, sizeof(strOff)); /* write length of tail */
-		symDump();		   /* dump symbols that are too long */
-	}
+	/* fix the symbol table setting numbers */
+	symGlob(DEBUG_RECS + USECTS);
+
+	coffDefCt = coffAuxCt = coffEfcnCt = 0;
 }
 
 /*
@@ -600,9 +667,9 @@ writeHeader()
 	head.f_magic = C_386_MAGIC;
 	time(&head.f_timdat);
 	head.f_nsyms = symbs;
-	head.f_symptr = sympos;
+	head.f_symptr = debpos;
 	head.f_opthdr = 0;
-	head.f_flags = F_LNNO;
+	head.f_flags = 0;
 	head.f_nscns = usects;
 
 	xwrite(0L, (char *)&head, sizeof(head));
@@ -626,7 +693,23 @@ cleanUp()
 	if(s->hiadd < (s->curadd = dot.loc))
 		s->hiadd = s->curadd;
 
-	writeHeader();
+	if (coffDefCt)	/* Write debug symbols */
+		writeDebug();
+
+	fseek(ofp, sympos, 0);
+
+	symDump(outSym, DEBUG_RECS);	/* write ordinary symbols */
+
+	symbs = (ftell(ofp) - debpos) / SYMESZ; /* figure sym ct from loc */
+
+	if (strOff > 4) {
+		owrite(&strOff, sizeof(strOff)); /* write length of tail */
+		writeDebugLong();   /* dump symbols that are too long */
+		symDump(outSymStr, DEBUG_RECS);	
+	}
+
+	writeHeader();	/* now we know header data */
+
 	for (s = segs; s < segend; s++) {
 		if (s->s_flags == STYP_BSS)
 			continue;
@@ -641,6 +724,7 @@ cleanUp()
 			binout(pad, s);
 		outData(s);
 		outRel(s);
+		outLineRec(s);
 	}
 }
 
@@ -733,7 +817,8 @@ segInit()
 		s->s_flags = segflag[i];
 		s->segSeq = ++sects;
 		s->bp = s->buf;
-		s->relBp = s->relBuf;		
+		s->relBp = s->relBuf;
+		s->lineBp = s->lineBuf;
 	}
 }
 
@@ -747,74 +832,274 @@ parm *p;
 }
 
 /*
- * coff statements after def.
+ * coff debugging statements.
  */
-coffdef(s)
-sym *s;
+coffFile(s)
+parm *s;
 {
-	if (NULL != this)
-		yywarn("Missing .endef");
-		/* The previous .def was not closed by a .endef */
-	this = alloc(sizeof(*this));
-	SYM.n_sclass = C_STAT;	/* defaults in case */
-	SYM.n_value  = s->loc;
-	
+	coffDefCt++;
+	coffAuxCt++;
+	if (2 == pass) {
+		symptr->sclass = C_FILE;
+		symptr->scnum  = N_DEBUG;
+		symptr->numaux = 1;
+		if ('"' == s->str[0]) {
+			char *p;
+
+			if (NULL != (p = strchr(s->str + 1, '"')))
+				*p = 0;
+			strncpy(symptr->aux.ae_fname, s->str + 1, FILNMLEN);
+		}
+		else
+			strncpy(symptr->aux.ae_fname, s->str, FILNMLEN);
+		symptr->name = ".file";
+		symptr++;
+	}
 }
 
-static void
-checkthis()
+coffDef(s)
+parm *s;
 {
-	if (NULL == this)
-		yyerror("A .def command must be in effect");
-		/* This command is only legal between a .def and a .endef */
+	if (2 == pass) {	/* initialize new symbol */
+		if (defSw)
+			yywarn("missing .endef");
+		symptr->scnum = N_DEBUG;
+		symptr->name  = scpy(s->str, 0);
+		symptr->symno = DEBUG_RECS;
+		defSw = 1;
+	}
 }
 
-coffendef()
+coffEndef()
 {
-	checkthis();
-	this = NULL;
+	if (2 == pass) {
+		if (symptr->scnum > 0)
+			symReNumber(symptr->name, DEBUG_RECS);
+
+		if (C_EFCN == symptr->sclass) {
+			register struct xsym *s;
+
+			for (s = symptr - 1; s != syms; s--) {
+				if (ISFCN(s->type) &&
+				    !strcmp(symptr->name, s->name)) {
+					s->aux.ae_fsize = symptr->value -
+							  s->value;
+					s->aux.ae_endndx = DEBUG_RECS;
+					break;
+				}
+			}
+			if (s == syms)
+				yywarn(".type -1 does not connect");
+				/* A type of -1 C_EFCN does not connect to
+				 * a .def of a function */
+		}
+		symptr->numaux = auxSw;
+		symptr++;
+		if (!defSw)
+			yywarn(".endef must follow .def"); /* */
+	}
+	coffDefCt++;			/* we need a spot to remember this */
+	coffEfcnCt += efcnSw;		/* C_EFCN don't write to table */
+	if (!efcnSw)			/* They don't have aux records */
+		coffAuxCt += auxSw;
+	auxSw = defSw = efcnSw = 0;
 }
 
-coffval(item)
+/*
+ * .type command
+ */
+coffType(n)
+long n;
+{
+	if (ISFCN(n)) { /* function build a line record */
+		register LINENO *bp;
+
+		auxSw = 1;
+		if (2 != pass)
+			cseg->s_nlnno++;
+		else {
+			bp = cseg->lineBp++;
+			bp->l_lnno = 0;
+			bp->l_addr.l_symndx = DEBUG_RECS;
+		
+			if (bp == (cseg->lineBuf + (LINEBUF - 1)))
+				outLineRec(cseg);
+		}
+	}
+	if (2 == pass) {
+		if (!defSw)
+			yywarn(".type not in .endif");
+			/* Debug command .type must be in .endif */
+		symptr->type = n;
+	}
+}
+
+coffVal(item)
 data *item;
 {
 	SYMENT *s;
 
-	checkthis();
+	if (2 != pass)
+		return;
+	if (!defSw)
+		yywarn(".val must follow .def"); /* */
+
 	if ('y' == item->type) {
-		s = outSym(item->d.y, 0);
-		SYM.n_value = s->n_value;
-		SYM.n_scnum = s->n_scnum;
+		symptr->scnum = item->d.y->sg;
+		symptr->value = item->d.y->loc;
 	}
-	else {
-		SYM.n_value = item->d.l;
-		SYM.n_scnum = 0;
-	}
-		
+	else
+	 	symptr->value = item->d.l;
 }
 
-coffset(op, n)
-opc *op;
+coffScl(n)
 long n;
 {
-	checkthis();
-	switch(op->kind) {
-	case S_SCL:
-		SYM.n_sclass = n;
-		break;
-	case S_TYPE:
-		SYM.n_type   = n;
-		break;
-	}
+	if (C_EFCN == n)
+		efcnSw = 1;
+	if (2 != pass)
+		return;
+	if (!defSw)
+		yywarn(".scl must follow .def"); /* */
+	symptr->sclass = n;
 }
 
-coffln(op, p, n)
-opc *op;
+coffSize(n)
+long n;
+{
+	auxSw = 1;
+	if (2 != pass)
+		return;
+	if (!defSw)
+		yywarn(".size must follow .def"); /* */
+	symptr->aux.ae_size = n;
+}
+
+coffDim(n, d)
+long n;
+int d;
+{
+	auxSw = 1;
+	if (2 != pass)
+		return;
+	if (!defSw) {
+		yywarn(".dim must follow .def"); /* */
+		return;
+	}
+	if (DIMNUM <= d) {
+		yywarn(".dim statement too complex");
+		/* A .dim statement may contain no more than 4 dimensions. */
+		return;
+	}
+	symptr->aux.ae_dimen[d] = n;
+}
+
+coffTag(p)
 parm *p;
-long n;
 {
+	struct xsym *s;
+
+	auxSw = 1;
+	if (2 != pass)
+		return;
+	for (s = symptr; s != syms; s--) {
+		if (!strcmp(p->str, s->name)) {
+		    	if (C_EOS == symptr->sclass && ISTAG(s->sclass))
+				s->aux.ae_endndx = symptr->symno + 2;
+			symptr->aux.ae_tagndx = s->symno;
+			break;
+		}
+	}
+	if (s == syms)
+		yywarn(".tag does not connect");
+		/* This tag fails to connect to an earlier unconnected .def
+		 * of the same name and a proper n_sclass.
+		 */
 }
 
+coffLn(n)
+long n;
+{
+	register LINENO *bp;
+
+	if (2 != pass)
+		cseg->s_nlnno++;
+	else {
+		bp = cseg->lineBp++;
+		bp->l_lnno = n;
+		bp->l_addr.l_paddr = dot.loc;
+		
+		if (bp == (cseg->lineBuf + (LINEBUF - 1)))
+			outLineRec(cseg);
+	}
+}
+
+coffLine(n)
+long n;
+{
+	auxSw = 1;
+	if (2 != pass)
+		return;
+	if (!defSw)
+		yywarn(".line must follow .def"); /* */
+	symptr->aux.ae_lnno = n;	
+}
+
+/*
+ * Write debug records.
+ */
+writeDebug()
+{
+	register struct xsym *s, *ends;
+	int ct = 0, act = 0;
+
+	fseek(ofp, lastSeek = debpos, 0);
+	for (ends = (s = syms) + coffDefCt; s != ends; s++) {
+		int i;
+		SYMENT sym;
+
+		if (C_EFCN == s->sclass)
+			continue;
+
+		sym.n_sclass = s->sclass;
+		sym.n_value  = s->value;
+		sym.n_scnum  = s->scnum;
+		sym.n_type   = s->type;
+		sym.n_numaux = s->numaux;
+
+		if ((i = strlen(s->name)) > SYMNMLEN) {
+			sym.n_offset = strOff;
+			sym.n_zeroes = 0;
+			strOff += i + 1;
+		}
+		else
+			strcpy(sym.n_name, s->name);
+		
+		ct++;
+		owrite(&sym, SYMESZ);
+		if (sym.n_numaux) {
+			act++;
+			owrite(&(s->aux), AUXESZ);
+		}
+	}
+	
+}
+
+writeDebugLong()
+{
+	register struct xsym *s, *ends;
+
+	for (ends = (s = syms) + coffDefCt; s != ends; s++) {
+		int i;
+
+		if (C_EFCN == s->sclass)
+			continue;
+
+		if ((i = strlen(s->name)) > SYMNMLEN)
+			owrite(s->name, i + 1);
+	}
+}
+	
 /*
  * .comm and .lcomm commands.
  * Improve later.
@@ -925,6 +1210,7 @@ char *name;
 	for (s = segs; s < segend; s++) {
 		adjust(s->bp);
 		adjust(s->relBp);
+		adjust(s->lineBp);
 	}
 #undef adjust
 	segend++;
@@ -944,6 +1230,7 @@ char *name;
 	s->segSeq = sects - 1;
 	s->bp = s->buf;
 	s->relBp = s->relBuf;
+	s->lineBp = s->lineBuf;
 
 	segment(&segOp, NULL, 0L);	/* switch to the new entry */
 }

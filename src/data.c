@@ -9,7 +9,12 @@ long _stksize = 4096;
 short errCt;		/* count of errors */
 short kind;		/* the op->kind of current opcode */
 short lastToken;	/* last token returned to yacc */
+#ifdef GNU
+char gswitch = 1;	/* make symbols of type S_NEW global */
+#else
 char gswitch;		/* make symbols of type S_NEW global */
+#endif
+
 char lswitch;		/* print a listing */
 char pswitch;		/* print headers */
 char mlistsw = 1;	/* print macro expansions */
@@ -50,3 +55,5 @@ char nswitchX;		/* storage for nswitch from -n */
 short pcnt, bcnt;	/* count op parens and brackets + left - right */
 short choices;		/* Number of ways to do this opcode */
 char xpass;		/* set if a branch changes size */
+
+long showSym;		/* location of clobbered symbol */

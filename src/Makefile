@@ -1,4 +1,6 @@
 # Object files required directly by as.386
+DESTDIR=/bin386/bin/
+
 O = main.o y_tab.o symtab.o lex.o common.o data.o space.o mwcvar.o \
  cmd.o build.o sym.o hash.o c_out.o utype.o getargs.o
 
@@ -20,14 +22,12 @@ K = main.c utype.h tabbld.c table.386 y_tab.c lex.c common.c data.c space.c \
  strtod.c cmd.c build.c sym.c hash.c c_out.c utype.c  mwcvar.c \
  getargs.c ieee_f.c ieee_d.c getline.c asfix.c y_tab.h $H
 
-DESTDIR=/bin386/bin/
-
 I =  -I. -I..
 CFLAGS = -A $I
 
 as : $O
-	cc -so $(DESTDIR)as $O
-	chmog 511 bin bin $(DESTDIR)as
+	cc -so $(DSTDIR)as $O
+	su root chmog 511 bin bin $(DESTDIR)$@
 
 install : as fixdoc asfix
 	su root `srcpath installer` $<

@@ -64,13 +64,13 @@ static unsigned short pos = LABEL;
 
 static unsigned short ctype;	/* current logic type */
 
-static char buf[256], *bp = buf;
+static char buf[1024], *bp = buf;
 static char *backOff;	/* start of decimal number */
 static char fromMac = ' ';		/* ' ' or '+' */
 static short opIx;	/* index of current opcode */
 static psw = 0;
 static long number = 0;
-static char token[256], *tp;
+static char token[1024], *tp;
 
 static int lastChar;	/* last Character in */
 static short vctr, scnt, dcnt;
@@ -397,13 +397,20 @@ startLine()
 {
 	register short c;
 
-	if (';' != lastChar) {
-		outLine(lastL, fromMac);
-		bp = lastL = getLine();
-	}
-	if (COMMA != lastToken)
-		freel();	/* trash free space from last line */
+#ifdef GNU
+	do {	/* GNU outputs # line numbers */
+#endif
+		if (';' != lastChar) {
+			outLine(lastL, fromMac);
+			bp = lastL = getLine();
+		}
+		if (COMMA != lastToken)
+			freel();	/* trash free space from last line */
+#ifdef GNU
+	} while ('#' == *bp);
+#endif
 	ctype = logic->type;
+
 	if (('#' != *bp) &&
 	   (';' != lastChar) &&
 	   (defCt || (NULL != trueMac)) &&

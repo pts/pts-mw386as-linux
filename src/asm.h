@@ -69,8 +69,8 @@ struct nhash {	/* name hash entry */
 
 struct psym {	/* predefined symbol table entry */
 	psym	*next;			/* same symbol with same hash */
-	short	type;			/* yacc type */
-	long	loc;			/* location */
+	short	type;			/* yacc type or coff debug type */
+	long	loc;			/* location of coff debug value */
 	long	size;			/* length */
 	short	sg;			/* segment plus 1 */
 	short	flag;			/* flag bits */

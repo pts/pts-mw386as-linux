@@ -103,25 +103,18 @@ symGlob(number)
 				continue;
 
 			case NUMBER: /* delete equ */
-				if ((2 == pass) && (sp->flag & S_EXDEF)) {
+				if ((2 == pass) && (sp->flag & S_EXDEF))
 					sp->num = number++;
-					outSym(sp, 1);
-				}
 				sp->type = IDENTIFIER;
 				sp->flag = S_UNDEF;
 				break;
-				*psp = sp->next;	/* rechain list */
-				free((char *)sp);
-				continue;
 
 			case IDENTIFIER:
 				if((sp->flag & S_UNDEF) && gswitch)
 					sp->flag = (S_EXREF | S_USED);
 
-				if((2 == pass) && !notSym(sp)) {
+				if((2 == pass) && !notSym(sp))
 					sp->num = number++;
-					outSym(sp, 1);
-				}
 			}
 			psp = &(sp->next);	/* follow list */
 		}
@@ -134,15 +127,48 @@ symGlob(number)
  * Dump symbol data
  */
 void
-symDump()
+symDump(output, limit)
+int (*output)();
+long limit;
 {
 	register sym *sp;
 	register i;
+	char *name;
 
 	for(i = 0; i < SHASH; i++)
-		for(sp = symhash[i]; NULL != sp; sp = sp->next)
-			if((IDENTIFIER == sp->type) && sp->num)
-				outSymStr(sp);
+		for(sp = symhash[i]; NULL != sp; sp = sp->next) {
+			if(sp->num > limit) {
+				switch(sp->type) {
+				case NUMBER:
+				case IDENTIFIER:
+					(*output)(sp);
+				}
+			}
+		}
+}
+
+/*
+ * This is called when debug records are created. It repoints
+ * the symbol number to one of the debug records. symDump then
+ * uses this information to avoid dumping the symbol twice.
+ * This means debug data can seriously screw up an output file
+ * if it is wrong.
+ */
+symReNumber(id, number)
+char *id;
+int number;
+{
+	short i;
+	register sym *sp;
+
+	for(sp = symhash[i = hash(id) % SHASH];
+	    sp != NULL;
+	    sp = sp->next) {
+		if(!strcmp(id, SYMNAME(sp)) && sp->num) {
+			sp->num = number;
+			break;
+		}
+	}
 }
 
 /*
@@ -360,15 +386,15 @@ char *id;
 	register nhash *op;
 	short i, l;
 
-	l = strlen(id);
-	for(i = hash(id) % OPCOUNT; -1 != i; i = op->next) {
-		if((l == (op = hashCodes + i)->nlen) &&
+	for (l = strlen(id), i = hash(id) % OPCOUNT;;) {
+		if ((l == (op = hashCodes + i)->nlen) &&
 		   !memcmp(id, (charLump + op->nameIx), l)) {
 			choices = op->count;
 			return(op->prefIx);
 		}
+		if (-1 == (i = op->next))
+			return (-1);
 	}
-	return(-1);
 }
 
 /*

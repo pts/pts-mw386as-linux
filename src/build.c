@@ -81,7 +81,8 @@ register expr *oper;
 	yyerror("Illegal combination of opcode and operands");
 	/* Although the opcode is valid and the operands are valid,
 	 * there is no form of this opcode which takes this combination
-	 * of operands in this order. */
+	 * of operands in this order. If there are a lot of these messages
+	 * the -f command option may be in the wrong sense. */
 	return(1);
 }
 

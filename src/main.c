@@ -176,21 +176,20 @@ char **argv;
 
 	if(NULL == outName) {	/* develop output filename */
 		char *q;
+		int len;
 
+		/* point p at input file name */
 		if (NULL != (q = strrchr(p = fileName, SLASH)))
 			p = q + 1;
 
-		outName = alloc((unsigned)(strlen(p) + 3));
+		outName = alloc((unsigned)(3 + (len = strlen(p))));
 		strcpy(outName, p);
-		if(NULL == (p = strrchr(outName, '.'))) {
-			p = strrchr(outName, 0);
-			*p++ = '.';
-			*p++ = 'o';
-		}
-		else {
-			*++p = 'o';
-			*++p = '\0';
-		}
+
+		p = outName + len - 2;	/* right spot for .  */
+		if ('.' != *p)		/* if no . append .o */
+			p += 2;
+
+		strcpy(p, ".o");
 	}
 
 	/* get ctime without \n */

@@ -107,6 +107,7 @@ extern char nswitchX;	/* storage for nswitch from -n */
 extern short pcnt, bcnt; /* count op parens and brackets + left - right */
 extern short choices;	 /* number of ways to do this op */
 extern char xpass;	/* set if a branch changes size */
+extern long showSym;
 
 /* from libs */
 char *strcpy();
@@ -128,3 +129,4 @@ extern readonly char charLump[];
 extern readonly opc prefTab[];
 extern readonly nhash hashCodes[];
 extern psym symtab[];
+

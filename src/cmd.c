@@ -71,11 +71,6 @@ data *item;
 	}
 
 	switch (op->kind) {
-	case S_LN:
-		if (2 == pass)
-			coffln(op, p, n);
-		break;
-
 	case S_SEGMENT:	/* change segments */
 		segment(op, p, n);
 		break;
@@ -98,13 +93,6 @@ data *item;
 				  item->d.y->loc, item->d.y->sg);
 		break;
 
-	case S_DEF:
-		if (2 == pass) {
-			if ('y' != item->type)
-				yyerror("Invalid operand type"); /**/
-			coffdef(item->d.y);
-		}
-		break;
 	}
 }
 
@@ -118,12 +106,34 @@ parm *p, *label;
 	ct = countList(p);
 
 	switch(op->kind) {
-	case S_TYPE:	/* unimplemented */
-	case S_TAG:
-	case S_FILE:
+	/*
+	 * This may be name value in some formats to avoid syntax error
+	 * we bring it in as ytype CMD. We don't do dubug for those formats.
+	 */
+	case S_TYPE:
+		labelIgnored(label);
+		if (NULL == p)
+			yywarn(".type requires a numeric parm");
+		else
+			coffType(atoi(p->str));
+		break;		
+	case S_DEF:
+		labelIgnored(label);
+		coffDef(p);
 		break;
+
+	case S_TAG:
+		labelIgnored(label);
+		coffTag(p);
+		break;
+
+	case S_FILE:
+		labelIgnored(label);
+		coffFile(p);		
+		break;
+
 	case S_ENDF:
-		coffendef();
+		coffEndef();
 		break;
 
 	case S_SEGMENT:	/* change segments */
@@ -328,18 +338,20 @@ data *item;
 
 	switch(op->kind) {
 	case S_VAL:
-		if (2 == pass)
-			coffval(item);
+		coffVal(item);
+		break;
+	case S_LN:
+		coffLn(n);
+		break;
+	case S_LINE:
+		coffLine(n);
+		break;
+	case S_SIZE:
+		coffSize(n);
 		break;
 	case S_SCL:
-	case S_LINE:
-		if (2 == pass) {
-			if (NULL != label)
-				yyerror("Label on invalid operator"); /**/
-			coffset(op, n);
-		}
+		coffScl(n);
 		break;
-
 	case S_ZERO:
 		buildlab(label);
 		while(n--)
@@ -355,31 +367,6 @@ data *item;
 	
 	case S_EVEN:
 		n = 2;
-
-	case S_ALIGN:
-		if (!--n)
-			return;
-		if ((1 != n) && (3 != n)) {
-			yyerror(".align must be 1, 2 or 4");
-		/* \fB\&.align\fR must work after the link.
-		 * These are the only values for which this can be true. */
-			return;
-		}
-		switch (dot.sg) {
-		case 1:	/* text */
-			while (dot.loc & n)
-				outab(0x90);
-			break;
-		case 2:	/* data */
-			while (dot.loc & n)
-				outab(0);
-			break;
-		case 3:	/* bssd */
-			oper.d.l = (dot.loc + n) & ~n;
-			oper.type = 'l';
-			doOrg(NULL, &oper);
-		}
-		break;
 
 	case S_SHIFT:
 		doShift((short)n);
@@ -577,13 +564,73 @@ data *oper;
 {
 	register sym *sp = NULL;
 	register sym *y;
-	long start;
+	long start, n;
+	char b, s;
 
-	if (op->kind == S_ORG)
+	switch (op->kind) {
+	case S_ORG:
 		return(doOrg(label, oper));
 
-	/* If alignment on and data and not .string or .byte */
-	if ((S_DATA == op->kind) && alignon) {
+	case S_ALIGN:
+		if (NULL == oper) {
+			yyerror("Missing operand");
+			/* \fB\&.align\fR must have 1 or 2 operands */
+			return(1);
+		}
+		switch (oper->type) {
+		case 'l':
+			n = oper->d.l;
+			break;
+		default:
+			yyerror("Invalid operand type"); /* NODOC */
+			return(1);
+		}
+
+		if ((3 != (s = dot.sg)) && (NULL != (oper = oper->next))) {
+			switch (oper->type) {
+			case 'l':
+				s = 0;
+				b = oper->d.l;
+				break;
+			default:
+				yyerror("Invalid operand type"); /* NODOC */
+				return(1);
+			}
+		}
+
+		if (!--n)
+			return;
+		if ((1 != n) && (3 != n)) {
+			yyerror(".align must be 1, 2 or 4");
+		/* \fB\&.align\fR must work after the link.
+		 * These are the only values for which this can be true. */
+			return(1);
+		}
+
+		switch (s) {
+		case 0:	/* fill selected by user */
+			while (dot.loc & n)
+				outab(b);
+			break;
+		case 1:	/* text */
+			while (dot.loc & n)
+				outab(0x90);
+			break;
+		case 2:	/* data */
+			while (dot.loc & n)
+				outab(0);
+			break;
+		case 3:	/* bssd */
+			oper.d.l = (dot.loc + n) & ~n;
+			oper.type = 'l';
+			doOrg(NULL, &oper);
+		}
+		return(0);
+
+	case S_DATA:
+		/* If alignment on and data and not .string or .byte */
+		if (!alignon)
+			break;
 		switch (op->code) {
 		case 1:
 			dot.loc++;
@@ -609,33 +656,36 @@ data *oper;
 		}
 	}
 
-	for( ; NULL != oper; oper = oper->next) {
-		if(S_DATA == op->kind || S_UDATA == op->kind) {
+	for(b = 0; NULL != oper; oper = oper->next) {
+		switch (op->kind) {
+		case S_DATA:
+		case S_UDATA:
 			dataOut(op, oper);
 			continue;
-		}
-		if('y' != oper->type) {
-			yyerror("Invalid data type, must be symbol"); /**/
+		case S_DIM:
+			if ('l' != oper->type) {
+				yyerror("Invalid data type, must be number");
+					 /**/
+				continue;
+			}
+			coffDim(oper->d.l, b++);
 			continue;
-		}
-		y = oper->d.y;
-		if(!(y->flag & S_ASYM)) {
-			yyerror("Illegal use of of predefined symbol %s.",
-				(psym *)y->name); /**/
-			continue;
-		}
-		if (NULL != strchr(y->name, ';')) {
-			yyerror("Illegal use of local symbol"); /**/
-			return;
-		}
-		switch(op->kind) {
-		case S_SIZE:
-			if (NULL == (oper = oper->next) ||
-			    oper->type != 'l')
-				yyerror("Improper .size instruction"); /**/
-			y->size = oper->d.l;
-			break;
 		case S_GLOBL:	/* .globl */
+			if('y' != oper->type) {
+				yyerror("Invalid data type, must be symbol");
+					 /**/
+				continue;
+			}
+			y = oper->d.y;
+			if(!(y->flag & S_ASYM)) {
+				yyerror("Illegal use of of predefined symbol %s.",
+					(psym *)y->name); /**/
+				continue;
+			}
+			if (NULL != strchr(y->name, ';')) {
+				yyerror("Illegal use of local symbol"); /**/
+				continue;
+			}
 			if (y->flag & S_UNDEF) {
 				y->loc = 0;
 				y->sg = 0;
@@ -643,7 +693,10 @@ data *oper;
 			}
 			else
 				y->flag |= S_EXDEF;
-			break;
+			continue;
+			default:
+				kindErr((unsigned short)op->kind);
+				return(1);
 		}
 	}
 

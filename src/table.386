@@ -151,7 +151,6 @@ mfF  d907 fstcw m32		# Store Control Word
 mF   d906 fnstenv m32		# Store FPU Environment no wait
 mfF  d906 fstenv m32		# Store FPU Environment
 F    d9e4 ftst			# Test
-F    dde9 fucomp		# Unordered compare %st %st1 and pop
 F    dae9 fucompp		# Unordered compare %st %st1 and pop twice
 F    009b fwait			# Wait for coprocessor
 F    d9e5 fxam			# Examine
@@ -167,8 +166,11 @@ dm   ff05 iljmp m32		# Long jump indirect
 -    00cd int	imm8		# Interrupt
 w    00ce into			# Int 4 if overflow is 1
 r    006c insb			# Input byte from port into ES:(E)DI
+r    006c insb  atdx		# Input byte from port into ES:(E)DI
 wr   006d insw			# Input word from port into ES:(E)DI
+wr   006d insw	atdx		# Input word from port into ES:(E)DI
 dr   006d insl			# Input long from port into ES:(E)DI
+dr   006d insl	atdx		# Input long from port into ES:(E)DI
 -    00cf iret			# Interrupt return
 -    00cf iretd			# Different mode different opcode ?
 i    7 ja	reli		# Jump if above
@@ -435,24 +437,24 @@ mF   d806 fdivs  m32
 mF   dc06 fdivl  m64
 aF   d8f0 fdiv	 fpreg st0
 aF   d8f0 fdiv	 fpreg
-F    def9 fdiv
-aF   dcf8 fdiv	 st0 fpreg
+F    def1 fdiv
+aF   dcf0 fdiv	 st0 fpreg
 G   	fdivp		# Floating divide and pop
-aF   def8 fdivp  st0 fpreg
-aF   def8 fdivp  fpreg
-F    def9 fdivp
+aF   def0 fdivp  st0 fpreg
+aF   def0 fdivp  fpreg
+F    def1 fdivp
 G   	fdivr		# Reverse floating divide
 AmF  d807 fdivr   m32
 mF   d807 fdivrs  m32
 mF   dc07 fdivrl  m64
 aF   d8f8 fdivr	 fpreg st0
 aF   d8f8 fdivr	 fpreg
-F    def1 fdivr
-aF   dcf0 fdivr	 st0 fpreg
+F    def9 fdivr
+aF   dcf8 fdivr	 st0 fpreg
 G   	fdivrp		# Reverse floating divide and pop
-aF   def0 fdivrp  st0 fpreg
-aF   def0 fdivrp  fpreg
-F    def1 fdivrp
+aF   def8 fdivrp  st0 fpreg
+aF   def8 fdivrp  fpreg
+F    def9 fdivrp
 G   	fiadd		# Add integer to float
 AmF  da00 fiadd  m32
 mF   da00 fiaddl m32
@@ -540,28 +542,32 @@ mF   d804 fsubs  m32
 mF   dc04 fsubl  m64
 aF   d8e0 fsub	 fpreg st0
 aF   d8e0 fsub	 fpreg
-F    dee9 fsub
-aF   dce8 fsub	 st0 fpreg
+F    dee1 fsub
+aF   dce0 fsub	 st0 fpreg
 G   	fsubp		# Floating subtract and pop
-aF   dee8 fsubp  st0 fpreg
-aF   dee8 fsubp  fpreg
-F    dee9 fsubp
+aF   dee0 fsubp  st0 fpreg
+aF   dee0 fsubp  fpreg
+F    dee1 fsubp
 G   	fsubr		# Reverse floating subtract
 AmF  d805 fsubr	  m32
 mF   d805 fsubrs  m32
 mF   dc05 fsubrl  m64
 aF   d8e8 fsubr	 fpreg st0
 aF   d8e8 fsubr	 fpreg
-F    dee1 fsubr
-aF   dce0 fsubr	 st0 fpreg
+F    dee9 fsubr
+aF   dce8 fsubr	 st0 fpreg
 G   	fsubrp		# Reverse floating subtract and pop
-aF   dee0 fsubrp  st0 fpreg
-aF   dee0 fsubrp  fpreg
-F    dee1 fsubrp
+aF   dee8 fsubrp  st0 fpreg
+aF   dee8 fsubrp  fpreg
+F    dee9 fsubrp
 G   	fucom		# Unordered compare real
 aF   dde0 fucom	st0 fpreg
 aF   dde0 fucom fpreg
 F    dde1 fucom
+G   	fucomp		# Unordered compare real and pop
+aF   dde8 fucomp st0 fpreg
+aF   dde8 fucomp fpreg
+F    dde9 fucomp
 G   	fxch		# Floating exchange
 aF   d9c8 fxch  st0 fpreg
 aF   d9c8 fxch  fpreg st0
@@ -761,106 +767,138 @@ w    009c pushfw
 d    009c pushfl
 G   	rcl		# Rotate carry left
 Am   d102 rcl	con1 m32
+Am   d102 rcl	m32
 Am   d302 rcl	cl m32
 Am   c102 rcl	imm8 m32
 m    d002 rclb	con1 rm8
+m    d002 rclb	rm8
 m    d202 rclb	cl rm8
 m    c002 rclb	imm8 rm8
 wm   d102 rclw	con1 rm16
+wm   d102 rclw	rm16
 wm   d302 rclw	cl rm16
 wm   c102 rclw	imm8 rm16
 dm   d102 rcll	con1 rm32
+dm   d102 rcll	rm32
 dm   d302 rcll	cl rm32
 dm   c102 rcll	imm8 rm32
 G   	rcr		# Rotate carry right
 Am   d103 rcr	con1 m32
+Am   d103 rcr	m32
 Am   d303 rcr	cl m32
 Am   c103 rcr	imm8 m32
 m    d003 rcrb	con1 rm8
+m    d003 rcrb	rm8
 m    d203 rcrb	cl rm8
 m    c003 rcrb	imm8 rm8
 wm   d103 rcrw	con1 rm16
+wm   d103 rcrw	rm16
 wm   d303 rcrw	cl rm16
 wm   c103 rcrw	imm8 rm16
 dm   d103 rcrl	con1 rm32
+dm   d103 rcrl	rm32
 dm   d303 rcrl	cl rm32
 dm   c103 rcrl	imm8 rm32
 G   	rol		# Rotate left
 Am   d100 rol	con1 m32
+Am   d100 rol	m32
 Am   d300 rol	cl m32
 Am   c100 rol	imm8 m32
 m    d000 rolb	con1 rm8
+m    d000 rolb	rm8
 m    d200 rolb	cl rm8
 m    c000 rolb	imm8 rm8
 wm   d100 rolw	con1 rm16
+wm   d100 rolw	rm16
 wm   d300 rolw	cl rm16
 wm   c100 rolw	imm8 rm16
 dm   d100 roll	con1 rm32
+dm   d100 roll	rm32
 dm   d300 roll	cl rm32
 dm   c100 roll	imm8 rm32
 G   	ror		# Rotate right
 Am   d101 ror	con1 m32
+Am   d101 ror	m32
 Am   d301 ror	cl m32
 Am   c101 ror	imm8 m32
 m    d001 rorb	con1 rm8
+m    d001 rorb	rm8
 m    d201 rorb	cl rm8
 m    c001 rorb	imm8 rm8
 wm   d101 rorw	con1 rm16
+wm   d101 rorw	rm16
 wm   d301 rorw	cl rm16
 wm   c101 rorw	imm8 rm16
 dm   d101 rorl	con1 rm32
+dm   d101 rorl	rm32
 dm   d301 rorl	cl rm32
 dm   c101 rorl	imm8 rm32
 G   	sal		# Shift arithmetic left
 Am   d104 sal	con1 m32
+Am   d104 sal	m32
 Am   d304 sal	cl m32
 Am   c104 sal	imm8 m32
 m    d004 salb	con1 rm8
+m    d004 salb	rm8
 m    d204 salb	cl rm8
 m    c004 salb	imm8 rm8
 wm   d104 salw	con1 rm16
+wm   d104 salw	rm16
 wm   d304 salw	cl rm16
 wm   c104 salw	imm8 rm16
 dm   d104 sall	con1 rm32
+dm   d104 sall	rm32
 dm   d304 sall	cl rm32
 dm   c104 sall	imm8 rm32
 G   	shl		# Shift arithmetic left
 Am   d104 shl	con1 m32
+Am   d104 shl	m32
 Am   d304 shl	cl m32
 Am   c104 shl	imm8 m32
 m    d004 shlb	con1 rm8
+m    d004 shlb	rm8
 m    d204 shlb	cl rm8
 m    c004 shlb	imm8 rm8
 wm   d104 shlw	con1 rm16
+wm   d104 shlw	rm16
 wm   d304 shlw	cl rm16
 wm   c104 shlw	imm8 rm16
 dm   d104 shll	con1 rm32
+dm   d104 shll	rm32
 dm   d304 shll	cl rm32
 dm   c104 shll	imm8 rm32
 G   	sar		# Shift arithmetic right
 Am   d107 sar	con1 m32
+Am   d107 sar	m32
 Am   d307 sar	cl m32
 Am   c107 sar	imm8 m32
 m    d007 sarb	con1 rm8
+m    d007 sarb	rm8
 m    d207 sarb	cl rm8
 m    c007 sarb	imm8 rm8
 wm   d107 sarw	con1 rm16
+wm   d107 sarw	rm16
 wm   d307 sarw	cl rm16
 wm   c107 sarw	imm8 rm16
 dm   d107 sarl	con1 rm32
+dm   d107 sarl	rm32
 dm   d307 sarl	cl rm32
 dm   c107 sarl	imm8 rm32
 G   	shr		# Shift right
 Am   d105 shr	con1 m32
+Am   d105 shr	m32
 Am   d305 shr	cl m32
 Am   c105 shr	imm8 m32
 m    d005 shrb	con1 rm8
+m    d005 shrb	rm8
 m    d205 shrb	cl rm8
 m    c005 shrb	imm8 rm8
 wm   d105 shrw	con1 rm16
+wm   d105 shrw	rm16
 wm   d305 shrw	cl rm16
 wm   c105 shrw	imm8 rm16
 dm   d105 shrl	con1 rm32
+dm   d105 shrl	rm32
 dm   d305 shrl	cl rm32
 dm   c105 shrl	imm8 rm32
 G   	sbb	# Subtract with borrow
@@ -1034,27 +1072,33 @@ tr7	TREG		7 4
 0	.eject	EJECT	NCMD	# Force a page break
 0	.mlist	MLIST	CMD	# list macro expansions
 0	.ttl	TITLE	CMD	# Set page title
+0	.section SECTION CMD	# Set section
 0	.nopage	PAGE	NCMD	# Turn off page breaks
 0	.byte	DATA	DATA	# .byte val [,val]
 1	.word	DATA	DATA	# .word val [,val]
+1	.2byte	UDATA	DATA	# .2byte val, val
 1	.value	DATA	DATA	# .value val [,val]
 2	.long	DATA	DATA	# .long val [,val]
+2	.4byte	UDATA	DATA	# .4byte val, [val]
 3	.float	DATA	DATA	# .float val [,val]
 4	.double DATA	DATA	# .double val [,val]
-2	.comm	COMM	ECMD	# .comm name expr
-2	.lcomm	COMM	ECMD	# .lcomm name expr
+5	.string DATA	DATA	# .string astring
+2	.comm	COMM	ECMDX	# .comm name expr
+2	.lcomm	COMM	ECMDX	# .lcomm name expr
 1	.alignon  ALIGNON NCMD	# align non char data objects
 0	.alignoff ALIGNON NCMD	# don't align non char data objects
-0	.align	ALIGN	ICMD	# .align val
+0	.align	ALIGN	DATA	# .align val [, fillChar]
 0	.even	EVEN	NCMD	# .even
 2	.bss	SEGMENT	ECMD	# .bss tag, bytes
 2	.bssd	SEGMENT	ECMD	# .bss tag, bytes
+0	.zero	ZERO	ICMD	# .zero value
 0	.blkb	BLKB	ICMD	# .blkb value
 1	.data	SEGMENT	NCMD	# .data
 1	.shrd	SEGMENT	NCMD	# .data
 1	.prvd	SEGMENT	NCMD	# .data
 1	.strn	SEGMENT	NCMD	# .data
 0	.text	SEGMENT NCMD	# .text
+10000	.previous SEGMENT NCMD	# .previous
 0	.shri	SEGMENT NCMD	# .text
 0	.prvi	SEGMENT NCMD	# .text
 0	.globl	GLOBL	DATA	# .globl name [,name]
@@ -1071,14 +1115,14 @@ tr7	TREG		7 4
 1	.intelorder OPORDER NCMD # .intelorder
 0	.bracketnorm BORDER NCMD # .bracketnorm
 1	.bracketrev  BORDER NCMD # .bracketrev
-0	.type	TYPE	ICMD	# .type expr compiler rep type
+0	.size	SIZE	ICMD	# .size expr
+0	.type	TYPE	CMD	# .type expr
 0	.val	VAL	ICMD	# .val expr
 0	.tag	TAG	CMD	# .tag string
-0	.size	SIZE	ICMD	# .size expr
 0	.scl	SCL	ICMD	# .scl expr
+0	.ln	LN	ICMD	# .ln expr
 0	.line	LINE	ICMD	# .line expr
-0	.ln	LN	ECMD	# .ln expr [,addr]
 0	.file	FILE	CMD	# .file name
 0	.endef	ENDF	NCMD	# .endf
-0	.def	DEF	ECMD	# .def name
+0	.def	DEF	CMD	# .def name
 0	.dim	DIM	DATA	# .dim expr [,expr]
