@@ -12,6 +12,7 @@
 #define DATABUF 512	/* size of data buffer */
 #define RELBUF 16	/* entries in relocation buffer */
 
+#define MANSEG 3	/* Segments that must go out */
 #define ROUNDR 3	/* used to round segments */
 
 typedef struct seg seg;
@@ -46,7 +47,7 @@ static long *tracker;	/* for debugging */
 static seg *segs, *segend;	/* segment bases */
 static seg *cseg;		/* current segment */
 
-static unsigned short ct, pos, sects, symbs;
+static unsigned short ct, pos, sects, symbs, usects;
 static long datapos, relpos, sympos, strOff;
 static long lastSeek;
 static FILE *ofp;		/* output file */
@@ -352,15 +353,6 @@ unsigned sw;
 	if ((sp->sg > 1) && !(sp->flag & S_COMMON))
 		rv += segs[sp->sg - 1].s_vaddr;
 
-#if 0
-#define dv(v) printf(" " #v "= %x\n", v)
-	dv(sp->flag);
-	dv(sp->size);
-	dv(sp->loc);
-	dv(oper->exp);
-	dv(sw);
-	dv(rv);
-#endif
 	return(rv);
 }
 		
@@ -469,8 +461,10 @@ register sym *sp;
 	else
 		strcpy(s._n._n_name, name);
 
-	
-	s.n_scnum = sp->sg;
+	if (sp->sg < 0)
+		s.n_scnum = sp->sg;
+	else
+		s.n_scnum = segs[sp->sg - 1].segSeq;
 	s.n_value = sp->loc;
 	s.n_sclass = C_STAT;
 
@@ -513,21 +507,27 @@ char *fn;
 	defCt = macNo = dot.loc = 0;
 
 	if (indPass()) {	/* take an extra pass */
+		usects = 0;
 		for (s = segs; s < segend; s++) {
+			if (s->hiadd || usects < MANSEG)
+				usects++;
+			s->segSeq = usects;
 			s->bp = s->buf;
 			s->relBp = s->relBuf;
 			s->s_nreloc = s->hiadd = s->curadd = 0;
 		}
-		symGlob(3); /* fix symbol table */
+		symGlob(usects); /* fix symbol table */
 		return;
 	}
 
 	pass   = 2;	/* last pass */
 	linect = nlpp;
-	xaddr = datapos = relpos = 0;
+	usects = xaddr = datapos = relpos = 0;
 	ofp = xopen(fn, "wb");
 	
 	for (s = segs; s < segend; s++) {
+		if (s->hiadd || usects < MANSEG)
+			usects++;
 		s->s_paddr = s->s_vaddr = xaddr;
 		s->hiadd += ROUNDR;		/* Round up */
 		s->hiadd &= ~ROUNDR;
@@ -539,22 +539,29 @@ char *fn;
 			relpos  += s->s_nreloc * RELSZ;
 		}
 	}
-	size =  sizeof(FILEHDR) + (sects * sizeof(SCNHDR));
+	size =  sizeof(FILEHDR) + (usects * sizeof(SCNHDR));
 	sympos = size + datapos + relpos;
 	relpos = size + datapos;
 
 	if (fseek(ofp, lastSeek = sympos, 0))
 		fatal("Seek error on object file");	/**/
 
+	usects = 0;
 	for (s = segs; s < segend; s++) {
 		SYMENT sym;
 
+		if (s->hiadd || usects < MANSEG)
+			usects++;
+		else
+			continue;
+
 		/* write symbol records for segments */
 		clear(&sym);
+		s->segSeq = usects;
 		sym.n_sclass = C_STAT;
 		sym.n_value = s->s_vaddr;
 		strcpy(sym._n._n_name, s->s_name);
-		sym.n_scnum = s->segSeq;
+		sym.n_scnum = usects;
 		owrite((char *)&sym, sizeof(sym));
 
 		if (s->hiadd && (s->s_flags != STYP_BSS))
@@ -571,7 +578,7 @@ char *fn;
 	}
 
 	strOff = 4;			/* init long symbol length */
-	symbs = symGlob(3);		/* write symbol table */
+	symbs = symGlob(usects);	/* write symbol table */
 
 	if (strOff > 4) {
 		owrite(&strOff, sizeof(strOff)); /* write length of tail */
@@ -587,6 +594,7 @@ writeHeader()
 {
 	register seg *s;
 	FILEHDR head;
+	int i;
 	long loadd;
 
 	head.f_magic = C_386_MAGIC;
@@ -595,11 +603,15 @@ writeHeader()
 	head.f_symptr = sympos;
 	head.f_opthdr = 0;
 	head.f_flags = F_LNNO;
-	head.f_nscns = sects;
-	
+	head.f_nscns = usects;
+
 	xwrite(0L, (char *)&head, sizeof(head));
-	for (loadd = 0, s = segs; s < segend; s++)
-		owrite(s, sizeof(SCNHDR));
+	for (loadd = i = 0, s = segs; s < segend; s++) {
+		if (s->hiadd || i < MANSEG) {
+			i++;
+			owrite(s, sizeof(SCNHDR));
+		}
+	}
 }
 
 /*
@@ -713,11 +725,10 @@ segInit()
 		STYP_TEXT, STYP_DATA, STYP_BSS
 	};
 
-	cseg = segs = alloc(sizeof(*segs) * 3);
-	segend = segs + 3;
+	cseg = segs = alloc(sizeof(*segs) * MANSEG);
+	segend = segs + MANSEG;
 
-	for (i = 0; i < 3; i++) {
-		s = segs + i;
+	for (i = 0, s = segs; s < segend; s++, i++) {
 		strcpy(s->s_name, segclass[i]);
 		s->s_flags = segflag[i];
 		s->segSeq = ++sects;
@@ -830,7 +841,7 @@ long n;
 /*
  * segment command.
  */
-sym *
+void
 segment(op, p, n)
 opc *op;
 parm *p;
@@ -838,8 +849,18 @@ long n;
 {
 	register seg *s;
 	sym *rv;
+	static int previous = 0;
+	int thisSg;
 
-	s = segs + op->code;
+	/* Implement one level segment stack */
+	if (10000 != op->code) {
+		thisSg = op->code;
+		previous = dot.sg - 1;	/* save where we were */
+	}
+	else	/* .previous pops the stack */
+		thisSg = previous;
+
+	s = segs + thisSg;
 
 	if (NULL == p) {	/* segment change */
 		if ((cseg->curadd = dot.loc) > cseg->hiadd)
@@ -847,15 +868,82 @@ long n;
 
 		cseg = s;
 		dot.loc = s->curadd;
-		dot.sg = op->code + 1;
-		return (NULL);
+		dot.sg = thisSg + 1;
+		return;
 	}
 
 	/* set up data */
-	rv = symLookUp(p->str, S_LOCAL, s->curadd, op->code + 1);
+	rv = symLookUp(p->str, S_LOCAL, s->curadd, thisSg + 1);
 	rv->size = n;
 	s->curadd += n;
 	if (s->curadd > s->hiadd)
 		s->hiadd = s->curadd;
-	return (rv);
+	return;
+}
+
+/*
+ * Switch to a section by name.
+ * add it if required.
+ */
+void
+section(name)
+char *name;
+{
+	int motion, i;
+	char *oldsegs;
+	register seg *s;
+	static opc segOp = { 0, S_SEGMENT };
+
+	/* These are common segment names with their flags */
+	static char *segclass[] = {
+		".init", ".fini", ".rodata",
+		".comment", ".ctors", ".dtors"
+	};
+	static long segflag[] = {
+		STYP_TEXT, STYP_TEXT, STYP_DATA,
+		STYP_INFO, STYP_DATA, STYP_DATA
+	};
+
+	/* Look for section in segment list */
+	for (segOp.code = 0; segOp.code < sects; segOp.code++) {
+		if (!strncmp(name, segs[segOp.code].s_name, 8)) {
+			segment(&segOp, NULL, 0L);
+			return;
+		}
+	}
+
+	/* realloc segment list with room for one more */
+	oldsegs = (char *)segs;
+	if (NULL == (segs = realloc(segs, sizeof(*segs) * ++sects)))
+		fatal("Out of memory"); /**/
+
+	/* adjust pointers to segment list */
+	motion = (char *)segs - oldsegs;
+#define adjust(ptr) ptr = (char *)(((char *)(ptr)) + motion)
+	adjust(cseg);
+	adjust(segend);
+	for (s = segs; s < segend; s++) {
+		adjust(s->bp);
+		adjust(s->relBp);
+	}
+#undef adjust
+	segend++;
+
+	/* build new entry on segment list */
+	memset(s, '\0', sizeof(*s));
+	strncpy(s->s_name, name, 8);
+	
+	s->s_flags = STYP_TEXT;		/* set default */
+	for (i = 0; i < 6; i++) {	/* look at common names */
+		if (!strcmp(name, segclass[i])) {
+			s->s_flags = segflag[i];
+			break;
+		}
+	}
+
+	s->segSeq = sects - 1;
+	s->bp = s->buf;
+	s->relBp = s->relBuf;
+
+	segment(&segOp, NULL, 0L);	/* switch to the new entry */
 }

@@ -277,6 +277,7 @@ unmatched(c)
 %token <o> ICMD		/* an assembler command taking a numexp parm */
 %token <o> NCMD		/* an assembler command without parms */
 %token <o> ECMD		/* an assembler command with a name and an expr */
+%token <o> ECMDX	/* an assembler command with a name and a datalist */
 %token <s> IDENTIFIER	/* a symbol */
 %token <s> REG		/* A register */
 
@@ -353,6 +354,9 @@ line	: label CMD plist NL { /* assembler command with parms */
 	| label DCMD plist NL { /* a command with string parms */
 		docmd($1, $2, $3); }
 	| label ECMD parm COMMA item NL { /* command with a name & an expr */
+		ecmd($1, $2, $3, $5); }
+	 /* command with a name & a datalist */
+	| label ECMDX parm COMMA itemlist NL {
 		ecmd($1, $2, $3, $5); }
 	| label ECMD NL {
 		ecmd($1, $2, NULL, 0L); }

@@ -19,6 +19,7 @@ unsigned short symGlob(); /* if -g mark new symbols global */
 void symDump();		/* dump string table if coff output */
 sym *symLookUp();	/* look up a symbol and maybe create one */
 short  opLookUp();	/* look up an opcode on the symbol table */
+void  opDelete();	/* remove an entry form the opcode table */
 macro *macLookUp();	/* look up a macro */
 void defMac();		/* create a new macro name */
 
@@ -27,7 +28,8 @@ void indBra();		/* indef branch */
 int  indPass();		/* Do we need another pass ? */
 
 /* c_out.c */
-sym *segment();
+void segment();
+void section();
 
 /* common subs */
 FILE *xopen();			/* open a file or die in the attempt */
@@ -113,6 +115,7 @@ char *strchr();
 char *strrchr();
 char *memcpy();
 char *ctime();
+char *realloc();
 long atol();
 long time();
 double strtod();

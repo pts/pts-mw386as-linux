@@ -24,6 +24,8 @@
  */
 #include <misc.h>
 
+extern char *realloc();
+
 static char *line = NULL;
 char *comment = NULL;
 static int oldline = 0;
@@ -36,8 +38,6 @@ static int j = 0, csize = 0;	/* stuff for comment */
 static void
 addchr(c)
 {
-	extern char *realloc();
-
 	while (i >= size)
 		if (NULL == (line = realloc(line, size += 80)))
 			fatal("Out of space");
@@ -51,8 +51,6 @@ addchr(c)
 static void
 addcom(c)
 {
-	extern char *realloc();
-
 	while (j >= csize)
 		if (NULL == (comment = realloc(comment, csize += 80)))
 			fatal("Out of space");	/* NODOC */

@@ -473,6 +473,7 @@ doOp(opIx)
 	case DATA:
 		RSTATE(ytype, WHITE)
 	case ECMD:
+	case ECMDX:
 	case CMD:
 		if (S_EQUS == kind) {
 			tp = token;
@@ -576,16 +577,17 @@ yylex()
 
 		/* pos != OPERAND may be opcode or label */
 		if (':' != c) {
+			if (-1 != (opIx = opLookUp(token)))
+				return(doOp(opIx));
+
 			if (NULL != (macFound = macLookUp(token, MACTYPE))) {
 				static opc smac = { /* fake opcode */
-					0, S_MAC };
+					0, S_MAC
+				};
 
 				yylval.o = &smac; /* macro expansion */
 				RSTATE(CMD, CSTATE)
 			}
-
-			if (-1 != (opIx = opLookUp(token)))
-				return(doOp(opIx));
 
 			if (!strcmp(token, ".")) {
 				yylval.t = token;
@@ -715,8 +717,11 @@ yylex()
 			--bp;
 			*tp = '\0';
 			yylval.t = trim(token);
-			if (ECMD == ytype)
+			switch(ytype) {
+			case ECMD:
+			case ECMDX:
 				RSTATE(TOKEN, WHITE)
+			}
 			RSTATE(TOKEN, CSTATE)
 		}
 		*tp++ = c;

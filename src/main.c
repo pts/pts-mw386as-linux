@@ -17,7 +17,7 @@
 	 * This can be a variety of problems. */
 #endif
 
-static char swChars[] = "wQXxfpbgnlo:?E:D:"; /* list for getargs */
+static char swChars[] = "VwQXxfpbgnlo:?E:D:"; /* list for getargs */
 static int savArgc;
 static char **savArgv;
 static char dodefsw;	/* -D or -E used */
@@ -105,9 +105,6 @@ char **argv;
 			nswitch = nswitchX ^= 1; 
 			break;
 
-		case 'Q':	/* No messages at all */
-			Qswitch ^= 1;
-
 		case 'w':	/* No warning messages */
 			wswitchX ^= 1;	
 			break;
@@ -132,6 +129,10 @@ char **argv;
 			bswitch = bswitchX ^= 1; 
 			break;
 
+		case 'Q':	/* No messages at all */
+			Qswitch ^= 1;
+			break;
+
 		case 'g':	/* treat unrefrenced symbols as globl */
 			gswitch = 1;	
 			break;
@@ -154,6 +155,8 @@ char **argv;
 		case 'D':	/* process in dodefs */
 		case 'E':
 			dodefsw = 1;
+		case 'V':
+			fprintf(stderr, "Mark Williams 80386 assembler\n");
 			break;
 
 		case '?':

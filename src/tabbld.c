@@ -77,7 +77,7 @@ extern char *realloc(), *strstr(), *getline(), *newcpy();
 extern unsigned short hash();
 extern char *comment;	/* from getline() */
 
-static FILE *ofp, *ohp, *otp, *odp;	/* output files */
+static FILE *ofp, *ohp, *otp, *odp, *oxp;	/* output files */
 static char *line;	/* input line */
 static int lineno = 1;	/* line number */
 static int state;	/* opcodes, registers commands */
@@ -947,7 +947,7 @@ outData()
 		this->hash = -2;
 	}
 
-	fprintf(ofp, "readonly nhash hashCodes[] = {\n");
+	fprintf(ofp, "nhash hashCodes[] = {\n");
 	for (i = 0; i < nameCt;) {
 		j = htab[i++];
 		if (j < 0 || j > opct) {

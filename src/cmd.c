@@ -118,6 +118,7 @@ parm *p, *label;
 	ct = countList(p);
 
 	switch(op->kind) {
+	case S_TYPE:	/* unimplemented */
 	case S_TAG:
 	case S_FILE:
 		break;
@@ -152,6 +153,7 @@ parm *p, *label;
 		break;
 	case S_UNDEFINE:	/* kill macro or define */
 		for(; NULL != p; p = p->next) {
+			opDelete(p->str);
 			macDelete(p->str, MACSTR);
 			macDelete(p->str, MACTYPE);
 		}
@@ -243,6 +245,15 @@ parm *p, *label;
 		if (2 == pass)
 			cmnt(op, p);
 		break;
+
+	case S_SECTION:
+		if (!ct) {
+			yyerror(".section must have name");	/**/
+			return;
+		}
+		section(p->str);
+		break;
+
 	case S_TITLE: {
 		static short i = 0;
 
@@ -320,8 +331,6 @@ data *item;
 		if (2 == pass)
 			coffval(item);
 		break;
-	case S_TYPE:
-	case S_SIZE:
 	case S_SCL:
 	case S_LINE:
 		if (2 == pass) {
@@ -329,6 +338,12 @@ data *item;
 				yyerror("Label on invalid operator"); /**/
 			coffset(op, n);
 		}
+		break;
+
+	case S_ZERO:
+		buildlab(label);
+		while(n--)
+			outab(0);
 		break;
 
 	case S_BLKB:
@@ -448,7 +463,7 @@ data *oper;
 		double d;
 	} u;
 
-	if(op->code && ('s' == oper->type)) {
+	if(op->code && (op->code != 5) && ('s' == oper->type)) {
 		yyerror("String must be on .byte");
 		/* For example:
 		 * .DM
@@ -458,6 +473,15 @@ data *oper;
 	}
 	while(oper->count--) {	/* honor repeat count */
 		switch(op->code) {	/* set by option */
+		case 5:			/* .string */
+			if ('s' != oper->type) {
+				yyerror("Improper .string operand");
+				return;
+			}
+			for(str = oper->d.s; c = *str++; )
+				outab((unsigned short)c);
+			outab(0);
+			break;
 		case 0:			/* .byte */
 			switch(oper->type) {
 			case 's':
@@ -558,21 +582,35 @@ data *oper;
 	if (op->kind == S_ORG)
 		return(doOrg(label, oper));
 
-	if ((S_DATA == op->kind) && alignon && op->code) {
-		dot.loc++;
-		dot.loc &= ~1;
+	/* If alignment on and data and not .string or .byte */
+	if ((S_DATA == op->kind) && alignon) {
+		switch (op->code) {
+		case 1:
+			dot.loc++;
+			dot.loc &= ~1;
+			break;
+		case 2:
+		case 3:
+		case 4:
+			dot.loc += 3;
+			dot.loc &= ~3;
+		}
 	}
 
 	if(NULL != label) {
-		if (S_DATA == op->kind)
+		switch (op->kind) {
+		case S_DATA:
+		case S_UDATA:
 			sp = symLookUp(label->str, S_LOCAL,
 				(start = dot.loc), dot.sg);
-		else
+			break;
+		default:
 			labelIgnored(label);
+		}
 	}
 
 	for( ; NULL != oper; oper = oper->next) {
-		if(S_DATA == op->kind) {
+		if(S_DATA == op->kind || S_UDATA == op->kind) {
 			dataOut(op, oper);
 			continue;
 		}
@@ -591,6 +629,12 @@ data *oper;
 			return;
 		}
 		switch(op->kind) {
+		case S_SIZE:
+			if (NULL == (oper = oper->next) ||
+			    oper->type != 'l')
+				yyerror("Improper .size instruction"); /**/
+			y->size = oper->d.l;
+			break;
 		case S_GLOBL:	/* .globl */
 			if (y->flag & S_UNDEF) {
 				y->loc = 0;

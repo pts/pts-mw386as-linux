@@ -331,7 +331,8 @@ char *id;
 	sp->type = IDENTIFIER;
 	switch(flag) {
 	case S_UNDEF:
-		sp->flag |= S_USED;
+		if (S_GLOBL != kind)
+			sp->flag |= S_USED;
 		break;
 	case S_XSYM:
 		sp->type = NUMBER;
@@ -368,6 +369,27 @@ char *id;
 		}
 	}
 	return(-1);
+}
+
+/*
+ * Remove an entry from the opcode table.
+ */
+void
+opDelete(id)
+char *id;
+{
+	register nhash *op;
+	short i, l;
+
+	l = strlen(id);
+	for(i = hash(id) % OPCOUNT; -1 != i; i = op->next) {
+		if((l == (op = hashCodes + i)->nlen) &&
+		   !memcmp(id, (charLump + op->nameIx), l)) {
+			op->nlen = 0;
+			return;
+		}
+	}
+	return;
 }
 
 /*
