@@ -17,7 +17,7 @@
 	 * This can be a variety of problems. */
 #endif
 
-static char swChars[] = "VwQXxfpbgnlo:?E:D:"; /* list for getargs */
+static char swChars[] = "VwQXaxfpbgnlo:?E:D:"; /* list for getargs */
 static int savArgc;
 static char **savArgv;
 static char dodefsw;	/* -D or -E used */
@@ -99,6 +99,10 @@ char **argv;
 				/* The assembler will only process one file
 				 * at a time. */
 			fileName = optarg;
+			break;
+
+		case 'a':	/* align data objects */
+			alignon = alignonX ^= 1;
 			break;
 
 		case 'n':	/* No fixes for chip errata */

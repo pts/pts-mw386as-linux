@@ -110,13 +110,6 @@ parm *p, *label;
 	 * This may be name value in some formats to avoid syntax error
 	 * we bring it in as ytype CMD. We don't do dubug for those formats.
 	 */
-	case S_TYPE:
-		labelIgnored(label);
-		if (NULL == p)
-			yywarn(".type requires a numeric parm");
-		else
-			coffType(atoi(p->str));
-		break;		
 	case S_DEF:
 		labelIgnored(label);
 		coffDef(p);
@@ -337,6 +330,9 @@ data *item;
 	}
 
 	switch(op->kind) {
+	case S_TYPE:
+		coffType(n);
+		break;		
 	case S_VAL:
 		coffVal(item);
 		break;

@@ -62,8 +62,9 @@ static FILE *ofp;		/* output file */
 static int coffDefCt;		/* count of .def in file */
 static int coffAuxCt;		/* aux records to be written */
 static int coffEfcnCt;		/* end of function records */
+static int txtAt;		/* DEBUG_RECS from last pass */
 #define DEBUG_RECS (coffDefCt + coffAuxCt - coffEfcnCt)
-#define USECTS (DEBUG_RECS ? usects * 2 : usects)
+#define USECTS (txtAt ? usects * 2 : usects)
 static char defSw;		/* in a .def statement */
 static char auxSw;
 static char efcnSw;
@@ -372,7 +373,7 @@ unsigned sw;
 	if (!(sp->flag & (S_EXREF|S_COMMON))) {
 		int seg = segs[sp->sg - 1].segSeq - 1;
 
-		bp->r_symndx = DEBUG_RECS ? (seg * 2) + DEBUG_RECS : seg;
+		bp->r_symndx = txtAt ? (seg * 2) + txtAt : seg;
 	}
 	else {
 		bp->r_symndx = sp->num;
@@ -552,6 +553,7 @@ char *fn;
 	cseg = segs;	/* return to .text */
 	longMode = pass = dot.sg = 1;
 	defCt = macNo = dot.loc = 0;
+	txtAt     = DEBUG_RECS;
 	if (indPass()) {	/* take an extra pass */
 		usects = 0;
 		for (s = segs; s < segend; s++) {
@@ -563,7 +565,7 @@ char *fn;
 			s->lineBp = s->lineBuf;
 			s->s_nlnno = s->s_nreloc = s->hiadd = s->curadd = 0;
 		}
-		symGlob(DEBUG_RECS + USECTS); /* fix symbol table */
+		symGlob(txtAt + USECTS); /* fix symbol table */
 		coffDefCt = coffAuxCt = coffEfcnCt = 0;
 		return;
 	}
@@ -594,7 +596,7 @@ char *fn;
 	}
 	size =  sizeof(FILEHDR) + (usects * sizeof(SCNHDR));
 	debpos  = size + datapos + relpos + linepos;
-	sympos  = debpos + (DEBUG_RECS * SYMESZ);
+	sympos  = debpos + (txtAt * SYMESZ);
 	linepos = size + datapos + relpos;
 	relpos  = size + datapos;
 
@@ -618,7 +620,7 @@ char *fn;
 		sym.n_value = s->s_vaddr;
 		strcpy(sym._n._n_name, s->s_name);
 		sym.n_scnum = usects;
-		sym.n_numaux = DEBUG_RECS ? 1 : 0;
+		sym.n_numaux = txtAt ? 1 : 0;
 		owrite((char *)&sym, sizeof(sym));
 
 		if (sym.n_numaux) {
@@ -648,8 +650,7 @@ char *fn;
 	sympos = ftell(ofp);	/* continue the symbol table from here */
 
 	/* fix the symbol table setting numbers */
-	symGlob(DEBUG_RECS + USECTS);
-
+	symGlob(txtAt + USECTS);
 	coffDefCt = coffAuxCt = coffEfcnCt = 0;
 }
 
@@ -698,14 +699,14 @@ cleanUp()
 
 	fseek(ofp, sympos, 0);
 
-	symDump(outSym, DEBUG_RECS);	/* write ordinary symbols */
+	symDump(outSym, txtAt);	/* write ordinary symbols */
 
 	symbs = (ftell(ofp) - debpos) / SYMESZ; /* figure sym ct from loc */
 
 	if (strOff > 4) {
 		owrite(&strOff, sizeof(strOff)); /* write length of tail */
 		writeDebugLong();   /* dump symbols that are too long */
-		symDump(outSymStr, DEBUG_RECS);	
+		symDump(outSymStr, txtAt);	
 	}
 
 	writeHeader();	/* now we know header data */
@@ -863,7 +864,7 @@ parm *s;
 	if (2 == pass) {	/* initialize new symbol */
 		if (defSw)
 			yywarn("missing .endef");
-		symptr->scnum = N_DEBUG;
+		symptr->scnum = N_ABS;
 		symptr->name  = scpy(s->str, 0);
 		symptr->symno = DEBUG_RECS;
 		defSw = 1;
@@ -873,12 +874,29 @@ parm *s;
 coffEndef()
 {
 	if (2 == pass) {
+		register struct xsym *s;
+
 		if (symptr->scnum > 0)
 			symReNumber(symptr->name, DEBUG_RECS);
 
-		if (C_EFCN == symptr->sclass) {
-			register struct xsym *s;
+		switch (symptr->sclass) {
+		case C_BLOCK:
+			if (strcmp(symptr->name, ".eb"))
+				break;
+			for (s = symptr - 1; s != syms; s--)
+				if (C_BLOCK == s->sclass &&
+				    !strcmp(s->name, ".bb") &&
+				    !s->aux.ae_endndx) {
+					s->aux.ae_endndx = DEBUG_RECS + 2;
+					break;
+				}
+			if (s == syms)
+				yywarn(".eb does not connect to .bb");
+				/* A .eb statement does not connect to a
+				 * .bb statement */
+			break;
 
+		case C_EFCN:
 			for (s = symptr - 1; s != syms; s--) {
 				if (ISFCN(s->type) &&
 				    !strcmp(symptr->name, s->name)) {
@@ -926,6 +944,7 @@ long n;
 				outLineRec(cseg);
 		}
 	}
+
 	if (2 == pass) {
 		if (!defSw)
 			yywarn(".type not in .endif");
@@ -945,8 +964,17 @@ data *item;
 		yywarn(".val must follow .def"); /* */
 
 	if ('y' == item->type) {
-		symptr->scnum = item->d.y->sg;
-		symptr->value = item->d.y->loc;
+		sym *sp = item->d.y;
+
+		if (sp->flag & S_COMMON) {
+			symReNumber(symptr->name, DEBUG_RECS);
+			symptr->scnum = N_UNDEF;
+			symptr->value = sp->size;
+		}
+		else {
+			symptr->scnum = sp->sg;
+			symptr->value = sp->loc;
+		}
 	}
 	else
 	 	symptr->value = item->d.l;
@@ -961,6 +989,8 @@ long n;
 		return;
 	if (!defSw)
 		yywarn(".scl must follow .def"); /* */
+	if (ISTAG(n))
+		symptr->scnum = N_DEBUG;
 	symptr->sclass = n;
 }
 
@@ -1002,9 +1032,9 @@ parm *p;
 	auxSw = 1;
 	if (2 != pass)
 		return;
-	for (s = symptr; s != syms; s--) {
-		if (!strcmp(p->str, s->name)) {
-		    	if (C_EOS == symptr->sclass && ISTAG(s->sclass))
+	for (s = symptr - 1; s != syms; s--) {
+		if (ISTAG(s->sclass) && !strcmp(p->str, s->name)) {
+		    	if (C_EOS == symptr->sclass)
 				s->aux.ae_endndx = symptr->symno + 2;
 			symptr->aux.ae_tagndx = s->symno;
 			break;

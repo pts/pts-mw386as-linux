@@ -1116,7 +1116,7 @@ tr7	TREG		7 4
 0	.bracketnorm BORDER NCMD # .bracketnorm
 1	.bracketrev  BORDER NCMD # .bracketrev
 0	.size	SIZE	ICMD	# .size expr
-0	.type	TYPE	CMD	# .type expr
+0	.type	TYPE	ICMD	# .type expr
 0	.val	VAL	ICMD	# .val expr
 0	.tag	TAG	CMD	# .tag string
 0	.scl	SCL	ICMD	# .scl expr

@@ -9,11 +9,7 @@ long _stksize = 4096;
 short errCt;		/* count of errors */
 short kind;		/* the op->kind of current opcode */
 short lastToken;	/* last token returned to yacc */
-#ifdef GNU
-char gswitch = 1;	/* make symbols of type S_NEW global */
-#else
 char gswitch;		/* make symbols of type S_NEW global */
-#endif
 
 char lswitch;		/* print a listing */
 char pswitch;		/* print headers */
@@ -29,7 +25,8 @@ char Xswitch;		/* don't put .L symbols in object file */
 char *title;		/* title header */
 char *dTime;		/* time of compile */
 char *lastL;		/* last line read for listing */
-char alignon = 1;	/* automatically align data objects */
+char alignon;		/* automatically align data objects */
+char alignonX;		/* alignon from switches */
 short lineSize = 79;	/* listing line length */
 short nlpp = 56;	/* default lines per page */
 short linect = 56;	/* current line number */

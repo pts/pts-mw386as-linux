@@ -75,6 +75,7 @@ extern char xswitch;	/* don't output local symbols in object */
 extern char nswitch;	/* no fixes for chip errata */
 extern char Xswitch;	/* don't output local .L symbols in object */
 extern char alignon;	/* automatically align data objects */
+extern char alignonX;
 
 extern short errCt;	/* count of errors */
 extern short kind;	/* the kind of the current opcode */

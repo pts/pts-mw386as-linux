@@ -284,7 +284,7 @@ getLine()
 				newPass(outName);
 
 				/* reset compiler switches to initial state */
-				alignon = 1;
+				alignon = alignonX;
 				lswitch = lswitchX;
 				nswitch = nswitchX;
 				wswitch = wswitchX;
@@ -397,18 +397,15 @@ startLine()
 {
 	register short c;
 
-#ifdef GNU
 	do {	/* GNU outputs # line numbers */
-#endif
 		if (';' != lastChar) {
 			outLine(lastL, fromMac);
 			bp = lastL = getLine();
 		}
 		if (COMMA != lastToken)
 			freel();	/* trash free space from last line */
-#ifdef GNU
 	} while ('#' == *bp);
-#endif
+
 	ctype = logic->type;
 
 	if (('#' != *bp) &&
