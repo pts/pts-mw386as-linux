@@ -72,7 +72,7 @@ data *item;
 
 	switch (op->kind) {
 	case S_SEGMENT:	/* change segments */
-		segment(op, NULL, 0L);
+		segment(op, p, n);
 		break;
 
 	case S_COMM:	/* allocate data in a segment */
@@ -135,6 +135,7 @@ parm *p, *label;
 			return(1);
 		fileOpen(p->str);
 		break;
+
 	case S_MACRO:
 		if(NULL == label) {
 			yyerror("Macro definition must have a label"); /**/
@@ -143,6 +144,7 @@ parm *p, *label;
 		else
 			defMac(label->str, p, MACTYPE);
 		break;
+
 	case S_EQUS:
 		defCt++;
 		if(NULL == label) {
@@ -152,6 +154,7 @@ parm *p, *label;
 		else
 			defMac(label->str, p, MACSTR);
 		break;
+
 	case S_UNDEFINE:	/* kill macro or define */
 		for(; NULL != p; p = p->next) {
 			opDelete(p->str);
@@ -159,6 +162,7 @@ parm *p, *label;
 			macDelete(p->str, MACTYPE);
 		}
 		break;
+
 	case S_MEXIT: {
 		macctl *m;
 
@@ -172,9 +176,11 @@ parm *p, *label;
 		} while(m->type != MACTYPE);
 		break;
 		}
+
 	case S_ENDM:
 		yyerror("Unexpected .endm ignored"); /**/
 		break;
+
 	case S_MAC:
 		{
 		register macctl *tmp;
@@ -192,28 +198,36 @@ parm *p, *label;
 			symLookUp(label->str, S_LOCAL, dot.loc, dot.sg);
 		}
 		break;
+
 	case S_ERRATA:
 		nswitch = op->code;
 		break;
+
 	case S_WARNINGS:
 		wswitch = op->code;
 		break;
+
 	case S_OPORDER:
 		fswitch = op->code;
 		break;
+
 	case S_BORDER:
 		bswitch = op->code;
 		break;
+
 	case S_LMODE:
 		longMode = op->code;
 		break;
+
 	case S_LIST:
 		if (pass == 2)
 			lswitch = op->code & lswitchX;
 		break;
+
 	case S_ALIGNON:
 		alignon = op->code;
 		break;
+
 	case S_EJECT:
 		if (lswitch && (2 == pass) && pswitch)
 			while (linect) {
@@ -221,9 +235,11 @@ parm *p, *label;
 				putchar('\n');
 			}
 		break;
+
 	case S_PAGE:
 		pswitch = op->code;
 		break;
+
 	case S_MLIST:
 		if (pass == 2) {
 			if(!strcmp("on", p->str))
@@ -236,12 +252,14 @@ parm *p, *label;
 				/**/
 		}
 		break;
+
 	case S_ERROR:
 		if (op->code)
 			yyerror("%s", p->str); /* NODOC */
 		else
 			yywarn("%s", p->str); /* NODOC */
 		break;
+
 	case S_CMNT:	/* ident and version */
 		if (2 == pass)
 			cmnt(op, p);
@@ -266,12 +284,14 @@ parm *p, *label;
 		}
 		break;
 	}
+
 	case S_ENDW:
 		if((NULL != macExp) && (WHILETYPE == macExp->type))
 			macExp->curr = macExp->first;
 		else
 			yyerror("Unexpected .endw"); /**/
 		break;
+
 	case S_ENDI:
 		switch(logic->type) {
 		case INIF1:
@@ -285,6 +305,7 @@ parm *p, *label;
 			/* TECH */
 		}
 		break;
+
 	case S_ELSE:
 		switch(logic->type) {
 		case INIF1:
@@ -298,9 +319,11 @@ parm *p, *label;
 			/* TECH */
 		}
 		break;
+
 	default:
 		kindErr((unsigned short)op->kind);
 	}
+
 	return(0);
 }
 
