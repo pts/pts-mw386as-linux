@@ -37,6 +37,7 @@ register unsigned disp;
  * Make a new copy of a string.
  * in temp space on a struct.
  */
+
 char *
 scpy(id, disp)
 register char *id;
@@ -184,8 +185,25 @@ char *fn;
 {
 	inpctl *ip;
 
+	/*
+	 * NIGEL: Hack this up so that after the string is copied into the
+	 * temp space we try and strip quote-marks. This job made a little
+	 * harder because Charles was a perverse son-of-a-bitch and used
+	 * flex-arrays.
+	 */
+
 	ip = (inpctl *)scpy(fn, offset(inpctl, name));
-	ip->fp = xopen(fn, "r");
+
+	if (* ip->name == '"') {
+		int		len = strlen (ip->name);
+
+		if (ip->name [len - 1] == '"') {
+			strncpy (ip->name, fn + 1, len - 2);
+			ip->name [len - 2] = 0;
+		}
+	}
+
+	ip->fp = xopen (ip->name, "r");
 	ip->prev = inpc;
 	inpc = ip;
 }
