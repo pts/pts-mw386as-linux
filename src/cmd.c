@@ -72,7 +72,7 @@ data *item;
 
 	switch (op->kind) {
 	case S_SEGMENT:	/* change segments */
-		segment(op, p, n);
+		segment(op, NULL, 0L);
 		break;
 
 	case S_COMM:	/* allocate data in a segment */
@@ -94,6 +94,7 @@ data *item;
 		break;
 
 	}
+	return 0;
 }
 
 /*
@@ -129,9 +130,6 @@ parm *p, *label;
 		coffEndef();
 		break;
 
-	case S_SEGMENT:	/* change segments */
-		segment(op, NULL, 0L);
-		break;
 	case S_INCLUDE:
 		if(ckCount(1))
 			return(1);
@@ -360,10 +358,6 @@ data *item;
 		oper.type = 'l';
 		doOrg(NULL, &oper);
 		return;
-	
-	case S_EVEN:
-		n = 2;
-
 	case S_SHIFT:
 		doShift((short)n);
 		break;
@@ -598,6 +592,11 @@ data *oper;
 	case S_ORG:
 		return(doOrg(label, oper));
 
+	case S_EVEN:	/* this is here to fall into .align */
+		s = dot.sg;
+		n = 1;
+		goto even;
+
 	case S_ALIGN:
 		if (NULL == oper) {
 			yyerror("Missing operand");
@@ -612,7 +611,6 @@ data *oper;
 			yyerror("Invalid operand type"); /* NODOC */
 			return(1);
 		}
-
 		if ((3 != (s = dot.sg)) && (NULL != (oper = oper->next))) {
 			switch (oper->type) {
 			case 'l':
@@ -634,7 +632,7 @@ data *oper;
 			return(1);
 		}
 
-		if (3 == dot.sg) {
+	even:	if (3 == dot.sg) {
 			oper.d.l = (dot.loc + n) & ~n;
 			oper.type = 'l';
 			doOrg(NULL, &oper);

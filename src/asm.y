@@ -359,7 +359,7 @@ line	: label CMD plist NL { /* assembler command with parms */
 	| label ECMDX parm COMMA itemlist NL {
 		ecmd($1, $2, $3, $5); }
 	| label ECMD NL {
-		ecmd($1, $2, NULL, 0L); }
+		ecmd($1, $2, NULL, NULL); }
 	| label NCMD NL {	/* assembler command takes no parms */
 		docmd($1, $2, (parm *)NULL); }
 	| label ICMD item NL { /* assembler command with data parm */

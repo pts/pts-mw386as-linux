@@ -136,7 +136,6 @@ long limit;
 {
 	register sym *sp;
 	register i;
-	char *name;
 
 	for(i = 0; i < SHASH; i++)
 		for(sp = symhash[i]; NULL != sp; sp = sp->next) {
