@@ -1,3 +1,4 @@
+DESTDIR=/bin386/bin/
 # Object files required directly by as.386
 O = main.o y_tab.o symtab.o lex.o common.o data.o space.o mwcvar.o \
  cmd.o build.o sym.o hash.o c_out.o utype.o getargs.o strtod.o
@@ -24,7 +25,7 @@ I =  -I. -I..
 CFLAGS = -A $I
 
 as : $O
-	cc -so as $O
+	cc -so $(DESTDIR)as $O
 
 install : as fixdoc asfix
 	su root `srcpath installer` $<
