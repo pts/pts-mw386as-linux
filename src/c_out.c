@@ -618,7 +618,7 @@ char *fn;
 		s->segSeq = usects;
 		sym.n_sclass = C_STAT;
 		sym.n_value = s->s_vaddr;
-		strcpy(sym._n._n_name, s->s_name);
+		memcpy(sym._n._n_name, s->s_name, SYMNMLEN);
 		sym.n_scnum = usects;
 		sym.n_numaux = txtAt ? 1 : 0;
 		owrite((char *)&sym, sizeof(sym));
@@ -814,7 +814,7 @@ segInit()
 	segend = segs + MANSEG;
 
 	for (i = 0, s = segs; s < segend; s++, i++) {
-		strcpy(s->s_name, segclass[i]);
+		strncpy(s->s_name, segclass[i], SYMNMLEN);
 		s->s_flags = segflag[i];
 		s->segSeq = ++sects;
 		s->bp = s->buf;
@@ -909,18 +909,18 @@ coffEndef()
 				 * .bb statement */
 			break;
 
-		case C_EFCN:
+		case C_EFCN:	/* end of function marker */
 			for (s = symptr - 1; s != syms; s--) {
 				if (!strcmp(symptr->name, s->name)) {
-					short type = s->type;
+					short type;
 
-					if (ISFCN(type))
-						break;
-					type >>= N_TSHIFT;
-					if (ISFCN(type))
-						break;
-					type >>= N_TSHIFT;
-					if (ISFCN(type))
+					/* if this is a function at any level */
+					for (type = s->type & ~N_BTMASK;
+					     type && !ISFCN(type);
+					     type >>= N_TSHIFT)
+					 	;
+
+					if (type)
 						break;
 				}
 			}
@@ -1302,7 +1302,7 @@ char *name;
 
 	/* build new entry on segment list */
 	memset(s, '\0', sizeof(*s));
-	strncpy(s->s_name, name, 8);
+	strncpy(s->s_name, name, SYMNMLEN);
 	
 	s->s_flags = STYP_TEXT;		/* set default */
 	for (i = 0; i < 6; i++) {	/* look at common names */
