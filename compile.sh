@@ -49,8 +49,11 @@ test "$(./asl5 /dev/null/missing 2>&1 >/dev/null)" = "errno reports: Not a direc
 test "$(./asl5 /dev/null/missing 2>/dev/null)" = "Cannot fopen(/dev/null/missing, r)"
 tools/rm -f hellol.o  # Works without it.
 ./asl5 hellol.s
+tools/miniperl-5.004.04 -x fixcoff.pl hellol.o
 
 if test $# != 0; then  # Run some more tests. GNU Binutils is needed.
+  # Tested with objdump(1) and ld(1) in GNU Binutils 2.24 on Debian.
+  # Some custom-compiled ld(1) linkers don't have COFF .o support, and they fail with: hellol.o: file not recognized: File format not recognized
   objdump -d hellol.o
   ld -m elf_i386 -N -o hellol hellol.o  # !! .bss size is broken in COFF, we don't care.
   ./hellol  # Prints `Hello, World!'.

@@ -281,7 +281,9 @@ bss_size equ 0xaac
 ; * DONE Fixed sbrk(...) implementation, now it works with ASLR (even level 2).
 ; * DONE Moved .text (including .rdata) from memory base 0 to >=0x10000 (Modern Linux sysctl vm.mmap_min_addr = 65536 doesn't allow less.)
 ; * DONE Replaced as Coherent errno messages (pointed to by sys_errlist) with as many Linux messages as possible.
-; * !! .bss size is broken in COFF, we don't care.
+; * DONE Fixed .bss and .data offsets in the COFF .o output (fixcoff.pl).
+; * Add linking this COFF output to an executable (folink3).
+; * Add conversion from this COFF output to ELF-32 (first without symbols).
 
 ; More gaps in the program which we could use for adding more Linux-specific assembly code.
 ;
