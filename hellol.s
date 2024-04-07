@@ -2,12 +2,14 @@
 / hellol.s: Linux i386 hello-world program in the Mark Williams 80386 assembler syntax
 / by pts@fazekas.hy at Sun Apr  7 20:03:18 CEST 2024
 /
-
-
-
-
-
-
+/ Tested with 1992-11-11 version of the Mark Williams 80386 assembler.
+/
+/
+/ Compile with: mw386as hellol.s  # Creates hellol.o.
+/
+/ Link with: perl -x link3coff.pl --elf2 hellol.o hellol
+/ Link with: perl -x fixcoff.pl hellol.o && ld -m elf_i386 -o hellol hellol.o
+/
 
 do_msg2:
 	mov $4, %eax  / SYS_write.

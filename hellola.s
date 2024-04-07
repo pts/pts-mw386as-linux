@@ -7,6 +7,8 @@
 #
 # Compile with: as --32 -march=i386 -o hellola.o hellola.s
 # Compile with earlier as(1) versions: as -o hellola.o hellola.s
+# Link with (only if the MinGW assembler was used for COFF output): perl -x link3coff.pl --elf2 hellola.o hellola
+# Link with: ld -m elf_i386 -o hellola hellola.o
 #
 
 do_msg2:
