@@ -246,9 +246,11 @@ incbin 'as', 0x00ede4, y1
 	;times 42 dd e1  ; Points to error lines.
 	dd e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16
 	dd e17, e18, e19, e20, e21, e22, e23, e24, e25, e26, e27, e28, e29, e30, e31
-	dd e32, e33, e34, e35, e36, e37, e38, e39, e40, e0
+	dd e32, e33, e34, e35, e36, e37, e38, e39, e40
+	dd e0  ; Useless for Linux, we support only 41 errno messages.
+	dd 41  ; sys_nerr.
 y2 equ brk_end_ptr-data_base-0x00ede4+4
-incbin 'as', 0x00ede4+y1+42*4, y2-4-y1-42*4
+incbin 'as', 0x00ede4+y1+43*4, y2-4-y1-43*4
 dd 0  ; The is brk_end_ptr. First call to sbrk(...) will set it.
 incbin 'as', 0x00ede4+y2, 0x001fbc-y2
 data_end:
