@@ -25,7 +25,7 @@ test $# = 0 && PATH=/dev/null/nopath
 
 # From Coherent 4.2.10, -r-x--x--x 1 pts pts 69024 Nov 11  1992 as
 test -f as
-#tools/miniperl-5.004.04 -x check.pl as  # Check size and checksum.
+tools/miniperl-5.004.04 -x check.pl as  # Check size and checksum.
 
 tools/nasm-0.98.39 -O999999999 -w+orphan-labels -f bin -o asl4 asl4.nasm
 tools/chmod +x asl4
