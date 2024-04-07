@@ -17,6 +17,7 @@ die "Usage: $0 <filename.o>\n" if @ARGV != 1;
 my $fn = $ARGV[0];
 sub fnopenq($) { $_[0] =~ m@[-+.\w]@ ? $_[0] : "./" . $_[0] }
 die "fatal: error opening: $fn\n" if !open(F, "+< " . fnopenq($fn));
+binmode(F);
 { my $oldfd = select(F); $| = 1; select($oldfd); }  # Autoflush.
 my $s;
 die "fatal: object file to short: $fn\n" if read(F, $s, 0xb4) < 0xb4 - 0x28;
