@@ -282,8 +282,8 @@ bss_size equ 0xaac
 ; * DONE Moved .text (including .rdata) from memory base 0 to >=0x10000 (Modern Linux sysctl vm.mmap_min_addr = 65536 doesn't allow less.)
 ; * DONE Replaced as Coherent errno messages (pointed to by sys_errlist) with as many Linux messages as possible.
 ; * DONE Fixed .bss and .data offsets in the COFF .o output (fixcoff.pl).
-; * Add linking this COFF output to an executable (folink3).
-; * Add conversion from this COFF output to ELF-32 (first without symbols).
+; * DONE Add linking this COFF output to an executable (link3coff.pl).
+; * Add conversion from this COFF output to ELF-32 .o (relocatable), first without symbols.
 
 ; More gaps in the program which we could use for adding more Linux-specific assembly code.
 ;

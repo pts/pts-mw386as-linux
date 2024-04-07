@@ -21,7 +21,8 @@ shift
 
 set -ex
 
-test $# = 0 && PATH=/dev/null/nopath
+old_path="$PATH"
+export PATH=/dev/null/nopath
 
 # From Coherent 4.2.10, -r-x--x--x 1 pts pts 69024 Nov 11  1992 as
 test -f as
@@ -49,13 +50,23 @@ test "$(./asl5 /dev/null/missing 2>&1 >/dev/null)" = "errno reports: Not a direc
 test "$(./asl5 /dev/null/missing 2>/dev/null)" = "Cannot fopen(/dev/null/missing, r)"
 tools/rm -f hellol.o  # Works without it.
 ./asl5 hellol.s
+tools/miniperl-5.004.04 -x link3coff.pl --elf hellol.o hellol
+./hellol  # Prints `Hello, World!'.
+test "$(./hellol)" = "Hello, World!"
+tools/miniperl-5.004.04 -x link3coff.pl --elf2 hellol.o hellol
+./hellol  # Prints `Hello, World!'.
+test "$(./hellol)" = "Hello, World!"
 tools/miniperl-5.004.04 -x fixcoff.pl hellol.o
+tools/miniperl-5.004.04 -x link3coff.pl --elf hellol.o hellol
+./hellol  # Prints `Hello, World!'.
+test "$(./hellol)" = "Hello, World!"
 
 if test $# != 0; then  # Run some more tests. GNU Binutils is needed.
+  PATH="$old_path"  # For objdump and ld.
   # Tested with objdump(1) and ld(1) in GNU Binutils 2.24 on Debian.
   # Some custom-compiled ld(1) linkers don't have COFF .o support, and they fail with: hellol.o: file not recognized: File format not recognized
   objdump -d hellol.o
-  ld -m elf_i386 -N -o hellol hellol.o  # !! .bss size is broken in COFF, we don't care.
+  ld -m elf_i386 -o hellol hellol.o  # Also works with -N (--elf). Without -N it's --elf2.
   ./hellol  # Prints `Hello, World!'.
   test "$(./hellol)" = "Hello, World!"
 fi
