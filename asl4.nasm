@@ -279,7 +279,6 @@ bss_size equ 0xaac
 ; * DONE Fixed sbrk(...) implementation, now it works with ASLR (even level 2).
 ; * DONE Moved .text (including .rdata) from memory base 0 to >=0x10000 (Modern Linux sysctl vm.mmap_min_addr = 65536 doesn't allow less.)
 ; * DONE Replaced as Coherent errno messages (pointed to by sys_errlist) with as many Linux messages as possible.
-; * !! have we transformed all instructions? (patch.pl)
 ; * !! .bss size is broken in COFF, we don't care.
 
 ; More gaps in the program which we could use for adding more Linux-specific assembly code.
