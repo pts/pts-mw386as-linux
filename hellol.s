@@ -3,6 +3,12 @@
 / by pts@fazekas.hy at Sun Apr  7 20:03:18 CEST 2024
 /
 
+
+
+
+
+
+
 do_msg2:
 	mov $4, %eax  / SYS_write.
 	mov $1, %ebx  / STDOUT_FILENO.
@@ -53,6 +59,6 @@ msgr:	.string "lo, "  / This also adds a NUL ("\0"), but there is no .ascii dire
 msgr_end1:
 
 .bss
-.blkb 6  / Moves correctly, 1 byte at a time.
+.blkb 6
 bssvar:
-.blkb 0x130-5  / GNU as(1) has this (also `.fill ...`): .zero 0x130
+.blkb 0x130-5  / GNU as(1) has this (also `.fill 0x130-5, 1, 0`): .zero 0x130-5
