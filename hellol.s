@@ -6,7 +6,7 @@
 do_msg2:
 	mov $4, %eax  / SYS_write.
 	mov $1, %ebx  / STDOUT_FILENO.
-	mov $msgd, %ecx
+	mov msgdp, %ecx
 	mov $msgd_end1-1-msgd, %edx
 	int $0x80  / Linux i386 syscall.
 do_exit:
@@ -25,7 +25,7 @@ _start:  / Entry point by GNU ld(1).
 
 	mov $4, %eax  / SYS_write.
 	mov $1, %ebx  / STDOUT_FILENO.
-	mov $msgr, %ecx
+	mov msgrp, %ecx
 	mov $msgr_end1-1-msgr, %edx
 	int $0x80  / Linux i386 syscall.
 
@@ -43,6 +43,8 @@ label123456789:  / Long label.
 .data
 msgd:	.string "WoXld!\n"  / The letter X will be changed to r above.
 msgd_end1:
+msgrp:	.long msgr
+msgdp:	.long msgd
 
 .text
 /.section .rodata  / Change this to `.data' or `.text' for direct linking to executable. The assembler puts .rodata after .bss.

@@ -64,8 +64,8 @@ exit(0) if $s0 eq $s;  # Already fixed.
 die if !seek(F, 0, 0);
 die if !print(F $s);
 
-sub fix_relocs($$$$) {
-  my($reloc_ofs, $count, $ofs, $vaddrs) = @_;
+sub fix_relocs($$$$$) {
+  my($reloc_ofs, $count, $ofs, $svaddr, $vaddrs) = @_;
   return if $count == 0;
   die "fatal: relocation count overflow\n" if $count < 0 or $count >= 214748364;  # Should be OK even if multiplied by 10.
   die "fatal: relocation ofs overflow\n" if $reloc_ofs < 0 or ($reloc_ofs >> 31) != 0;
@@ -73,28 +73,35 @@ sub fix_relocs($$$$) {
   my $r;
   die if !seek(F, $reloc_ofs, 0);
   die if read(F, $r, $count) != $count;
+  my $r_has_changed = 0;
   for (my $i = 0; $i != $count; $i += 10) {
     my($vaddr, $symndx, $type) = unpack("VVv", substr($r, $i, 10));
     # RELOC_ADDR32=6, RELOC_REL32=0x14==20.
     #printf(STDERR "info: vaddr=0x%x symndx=0x%x type=0x%x\n", $vaddr, $symndx, $type);
     die sprintf("fatal: expected reloc type=0x6(RELOC_ADDR32), got 0x%x\n", $type) if $type != 6;
     die sprintf("fatal: expected symndx less than 0x%x, got 0x%x\n", scalar(@$vaddrs), $symndx) if @$vaddrs <= $symndx;
+    die sprintf("fatal: expected vaddr at least 0x%x, got 0x%x\n", $svaddr, $vaddr) if $svaddr > $vaddr;
+    if ($svaddr != 0) { substr($r, $i, 4) = pack("V", $vaddr - $svaddr); $r_has_changed = 1 }
     my $delta = -($vaddrs->[$symndx] << 1);
-    next if !$delta;
+    next if $delta == 0;
     #printf(STDERR "info: fix vaddr=0x%x delta=0x%x\n", $vaddr, $delta);
-    die if !seek(F, $ofs + $vaddr, 0);
+    die if !seek(F, $ofs + $vaddr - $svaddr, 0);
     my $d;
     die if read(F, $d, 4) != 4;
     my $d2 = pack("V", (unpack("V", $d) + $delta) & 0xffffffff);
-    #printf(STDERR "info: fix vaddr=0x%x delta=0x%x d=0x%x d2=0x%x\n", $vaddr, $delta, unpack("V", $d), unpack("V", $d2));
-    die if !seek(F, $ofs + $vaddr, 0);
+    printf(STDERR "info: fix vaddr=0x%x delta=0x%x d=0x%x d2=0x%x\n", $vaddr - $svaddr, $delta, unpack("V", $d), unpack("V", $d2)) if $svaddr != 0;
+    die if !seek(F, $ofs + $vaddr - $svaddr, 0);
     die if !print(F $d2);
+  }
+  if ($r_has_changed) {
+    die if !seek(F, $reloc_ofs, 0);
+    die if !print(F $r);
   }
 }
 
 my $vaddrs = [$text_vaddr, $data_vaddr, $bss_vaddr];
-fix_relocs($text_reloc_ofs, $text_reloc_count, $text_ofs, $vaddrs);
-fix_relocs($data_reloc_ofs, $data_reloc_count, $data_ofs, $vaddrs);
+fix_relocs($text_reloc_ofs, $text_reloc_count, $text_ofs, $text_vaddr, $vaddrs);
+fix_relocs($data_reloc_ofs, $data_reloc_count, $data_ofs, $data_vaddr, $vaddrs);
 
 die if !close(F);
 
