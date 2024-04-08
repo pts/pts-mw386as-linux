@@ -821,14 +821,14 @@ void outData(void)
 	for (i = 0; i < funct;) {
 		f = funtab + i;
 		fprintf(ohp, "#define %-21s %2d\n", f->name, i);
-		fprintf(ofp, " /* %-21s */ { %10s, 0x%04x, %d",
+		fprintf(ofp, " /* %-21s */ { %10s, 0x%04x, %d, {",
 			f->name,
 			f->type,
 			f->opt & 0xffff,
 			f->operands);
 		for (j = 0; j < f->operands; j++)
-			fprintf(ofp, ", %s", opertab[(unsigned char)f->ap[j]].name);
-		fprintf(ofp, " }%s\n", ((++i < funct) ? "," : ""));
+			fprintf(ofp, "%s%s", ", " + (j == 0), opertab[(unsigned char)f->ap[j]].name);
+		fprintf(ofp, " } }%s\n", ((++i < funct) ? "," : ""));
 	}
 	fprintf(ofp, "};\n\n");
 
