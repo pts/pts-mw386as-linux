@@ -6,7 +6,7 @@
 #include "y_tab.h"
 #include "symtab.h"
 
-static symt *st;
+static const symt *st;
 static struct expr *opList[3];
 static int ct;
 
@@ -40,7 +40,7 @@ void outrb(expr *oper, int sw);
 void outrw(expr *oper, int sw);
 void outrl(expr *oper, int sw);
 
-static int buildop(opc *op);
+static int buildop(const opc *op);
 static int checkop(register expr *this, unsigned short type);
 static void outrm16(void);
 static void outrm32(void);
@@ -52,7 +52,7 @@ static void outrm32(void);
  */
 int buildind(label, op, oper)
 parm *label;
-register opc *op;
+register const opc *op;
 register expr *oper;
 {
 	int i;
@@ -583,7 +583,7 @@ void errata(int opcode)
 /*
  * Try to build an opcode.
  */
-static int buildop(opc *op)
+static int buildop(const opc *op)
 {
 	register unsigned short i, j;
 	static short postSw = 0;

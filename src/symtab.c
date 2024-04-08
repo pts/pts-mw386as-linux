@@ -8,7 +8,7 @@
 #include "y_tab.h"
 #include "symtab.h"
 
-symt typTab[] = {
+const symt typTab[] = {
  /* S_0000                */ {         OP, 0x0000, 0, { 0 } },
  /* S_0000_r16_rm16       */ {         OP, 0x0000, 2, { r16, rm16 } },
  /* S_0000_reli           */ {         OP, 0x0000, 1, { reli } },
@@ -236,7 +236,7 @@ symt typTab[] = {
  /* S_DIM                 */ {       DATA, 0x0000, 0, { 0 } }
 };
 
-char charLump[] = {
+const char charLump[] = {
 	'.', 'b', 'r', 'a', 'c', 'k', 'e', 't', 'n', 'o', 'r',
 	'm', '.', 'b', 'r', 'a', 'c', 'k', 'e', 't', 'r', 'e',
 	'v', '.', 'i', 'n', 't', 'e', 'l', 'o', 'r', 'd', 'e',
@@ -423,7 +423,7 @@ char charLump[] = {
 	't', 'd', 's', 't', 'i', 'j', 'o', 'j', 's', 'j', 'z'
 };
 
-opc prefTab[] = {
+const opc prefTab[] = {
 
 	{ (short)0x00a3,       S_000a_r32_rm32 },	/* btl        0 */
 	{ (short)0xba04,      S_002a_imm8_rm32 },	/* btl        1 */

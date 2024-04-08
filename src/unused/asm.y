@@ -271,7 +271,7 @@ unmatched(int c)
 	long	val;	/* numeric value */
 	double  dbl;
 	sym	*s;	/* name size loc bitd bitl flag */
-	opc	*o;	/* opcode kind */
+	const opc	*o;	/* opcode kind */
 	expr	*e;	/* mode loc size exp bitd bitl chain next */
 	char	*t;	/* token */
 	parm	*p;	/* parm  */

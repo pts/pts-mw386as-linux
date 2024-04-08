@@ -382,7 +382,7 @@ short
 opLookUp(id)
 char *id;
 {
-	register nhash *op;
+	register const nhash *op;
 	short i, l;
 
 	for (l = strlen(id), i = hash(id) % OPCOUNT;;) {

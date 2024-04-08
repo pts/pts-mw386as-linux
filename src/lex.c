@@ -83,7 +83,7 @@ static char token[1024], *tp;
 
 static int lastChar;	/* last Character in */
 static short vctr, scnt, dcnt;
-static symt *stype;
+static const symt *stype;
 static short ytype;
 
 /*
@@ -316,7 +316,7 @@ getLine()
 static unsigned short
 procOp()
 {
-	register opc *op;
+	register const opc *op;
 
 	*tp = '\0';
 	bp--;
@@ -468,7 +468,7 @@ startLine()
 static
 int doOp(int opIx)
 {
-	register opc *op;
+	register const opc *op;
 
 	lflags = 0;
 	stype = typTab + (kind = (op = prefTab + opIx)->kind);

@@ -15,8 +15,8 @@
 #include "asm.h"
 #include "symtab.h"
 
-void comm(opc *op, parm *p, long n);
-void cmnt(opc *op, parm *p);
+void comm(const opc *op, parm *p, long n);
+void cmnt(const opc *op, parm *p);
 void doOrg(parm *label, data *oper);
 void coffDef(parm *s);
 void coffTag(parm *p);
@@ -73,7 +73,7 @@ setUpWhile()
 /*
  * Do commands with name, expr.
  */
-void ecmd(parm *label, opc *op, parm *p, data *item)
+void ecmd(parm *label, const opc *op, parm *p, data *item)
 {
 	long n = 0;
 
@@ -124,7 +124,7 @@ void ecmd(parm *label, opc *op, parm *p, data *item)
  * Do commands with string parms.
  */
 void docmd(label, op, p)
-opc *op;
+const opc *op;
 parm *p, *label;
 {
 	ct = countList(p);
@@ -353,7 +353,7 @@ parm *p, *label;
  */
 void ncmd(label, op, item)
 parm *label;
-opc *op;
+const opc *op;
 data *item;
 {
 	long n = 0;  /* Pacify GCC about unitinitialized variable. */
@@ -475,7 +475,7 @@ data *addr;
  */
 static void
 dataOut(op, oper)
-opc *op;
+const opc *op;
 data *oper;
 {
 	register char *str, c;
@@ -625,7 +625,7 @@ alignOut(int seg, int byte, int n)
  */
 void dcmd(label, op, oper)
 parm *label;
-opc *op;
+const opc *op;
 data *oper;
 {
 	register sym *sp = NULL;

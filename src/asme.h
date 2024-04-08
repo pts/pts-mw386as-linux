@@ -122,16 +122,15 @@ void sTitle(void);
 void segInit(void);
 int macDelete(char *s, short t);
 void kindErr(unsigned short kind);
-int buildind(parm *label, opc *op, expr *oper);
-void docmd(parm *label, opc *op, parm *p);
-void ecmd(parm *label, opc *op, parm *p, data *item);
-void ncmd(parm *label, opc *op, data *item);
-void dcmd(parm *label, opc *op, data *oper);
+int buildind(parm *label, const opc *op, expr *oper);
+void docmd(parm *label, const opc *op, parm *p);
+void ecmd(parm *label, const opc *op, parm *p, data *item);
+void ncmd(parm *label, const opc *op, data *item);
+void dcmd(parm *label, const opc *op, data *oper);
 
 /* tables from symtab.c */
-extern symt typTab[];
-extern char charLump[];
-extern opc prefTab[];
-extern nhash hashCodes[];
-extern psym symtab[];
-
+extern const symt typTab[];
+extern const char charLump[];
+extern const opc prefTab[];
+extern nhash hashCodes[];  /* opDelete(...) modifies it. */
+extern psym symtab[];  /* Not const, because dot (.) is symtab[0], and that changes. */
