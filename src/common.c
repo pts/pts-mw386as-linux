@@ -1,7 +1,12 @@
 /*
  * 80386 assembler common functions.
  */
-#include <asm.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "asm.h"
 
 /*
  * Open a file or die in the attempt.
@@ -101,7 +106,7 @@ char *t;
 		n++;
 	}
 	if(!strcmp(".macno", t)) {
-		static char buf[6];
+		static char buf[2 + sizeof(int) * 3];
 
 		sprintf(buf, "%d", trueMac->expno);
 		return(buf);
@@ -152,7 +157,7 @@ short n;
  * push a new logic level.
  */
 void
-newLevel(type)
+newLevel(int type)
 {
 	macctl *mac;
 
@@ -168,7 +173,7 @@ newLevel(type)
  * Pop a logic level.
  */
 void
-freeLevel()
+freeLevel(void)
 {
 	macctl *tmp;
 
@@ -211,7 +216,7 @@ char *fn;
 /*
  * Check for no truncation to short.
  */
-ck16(n)
+int ck16(n)
 register long n;
 {
 	register short i;
@@ -247,7 +252,7 @@ parm *label;
 /*
  * Table error detected.
  */
-kindErr(kind)
+void kindErr(kind)
 unsigned short kind;
 {
 	fatal("Table error kind %x detected", kind); /* TECH */
@@ -256,10 +261,10 @@ unsigned short kind;
 /*
  * Find a name on a char ** and return index.
  */
-nameList(n, nl)
+int nameList(n, nl)
 register char *n, **nl;
 {
-	register i;
+	register int i;
 
 	for(i = 0; (NULL != *nl) && strcmp(n, *nl); i++, nl++)
 		;
