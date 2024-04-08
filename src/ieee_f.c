@@ -2,6 +2,8 @@
  * libc/gen/ieee_f.c
  */
 
+#include <string.h>
+
 /*
  * ieee_f(float *ifp, float *dfp)
  * Convert float from DECVAX format to IEEE format.
@@ -15,11 +17,11 @@
 int
 ieee_f(ifp, dfp) float *ifp, *dfp;
 {
-	register int exp, s;
+	register int exp;
 	register unsigned char *cp;
 
 	/* Copy to destination. */
-	cp = (char *)ifp;
+	cp = (unsigned char *)ifp;
 	if (ifp != dfp)
 		memcpy(cp, (char *)dfp, sizeof(float));
 
