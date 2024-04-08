@@ -39,6 +39,8 @@ char *gcpy();			/* copy into tmp space */
 void yyerror(const char *fmt, ...);			/* display error msg */
 void fatal(const char *fmt, ...);			/* put a msg and die */
 void yywarn(const char *fmt, ...);
+char *alloc(unsigned n);
+int getargs(int argc, char *argv[], char *optstring);
 char *trim();			/* trim trailing spaces and tabs */
 short  countList();		/* count things with next or prev ptrs */
 void freeLevel();		/* pop a logic level */

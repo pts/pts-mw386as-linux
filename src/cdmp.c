@@ -15,9 +15,18 @@
  * Does not know all there is to know about aux entry structure yet.
  */
 
-#include <misc.h>		/* misc useful stuff */
-#include <coff.h>
 #include <errno.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
+#include "coff.h"
+
+char *alloc(unsigned n);
+FILE *xopen(const char *fn, const char *acs);
+int getargs(int argc, char *argv[], char *optstring);
 
 #define	VERSION	"V2.0"
 #define VHSZ	48		/* line size in vertical hex dump */
@@ -34,17 +43,16 @@ extern	long	ftell();
 extern	char	*optarg;
 
 /* Forward. */
-void	fatal();
-char	*checkStr();
+char *checkStr(char *s);
 void	optHeader();
 void	readHeaders();
 void	shrLib();
 void	readSection();
 void	readStrings();
 void	readSymbols();
-void	print_aux();
+void print_aux(int n, register SYMENT *sep);
 void	print_sym();
-void	dump();
+void dump(register char *buf, register int p);
 int	clean();
 void	outc();
 int	hex();
@@ -70,13 +78,16 @@ char	xswitch;		/* Dump aux entries in hex		*/
  * Print fatal error message and die.
  */
 /* VARARGS */
-void
-fatal(s) char *s;
+void fatal(const char *fmt, ...)
 {
+	va_list ap;
 	register int save;
 
 	save = errno;
-	fprintf(stderr, "cdmp: %r\n", &s);
+	fputs("cdmp: ", stderr);
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	fputs("\n", stderr);
 	if (0 != (errno = save))
 		perror("errno reports");
 	exit(1);
@@ -86,14 +97,13 @@ fatal(s) char *s;
  * Return a printable version of string s,
  * massaging nonprintable characters if necessary.
  */
-char *
-checkStr(s) unsigned char *s;
+char *checkStr(char *s)
 {
 	register unsigned char *p, c;
 	register int ct, badct;
 	static char *work = NULL;
 
-	for (badct = 0, ct = 1, p = s; c = *p++; ct++)
+	for (badct = 0, ct = 1, p = (unsigned char*)s; (c = *p++); ct++)
 		if ((c <= ' ') || (c > '~'))
 			badct += 2;	/* not printable as is */
 
@@ -104,7 +114,7 @@ checkStr(s) unsigned char *s;
 		free(work);		/* free previous */
 
 	work = alloc(badct + ct);
-	for (p = work; c = *s++;) {
+	for (p = (unsigned char*)work; (c = (unsigned char)*s++);) {
 		if (c > '~') {
 			*p++ = '~';
 			c &= 0x7f;
@@ -283,7 +293,11 @@ readSection(n) register int n;
 		fseek(fp, sh.s_scnptr, 0);
 		if (1 != fread(code, sh.s_size, 1, fp))
 			fatal("Error reading .text segment");
-		dumpInst(code, sh.s_size);
+#if 0  /* dumpInst is not implemented. */
+		dumpInst(code, sh.s_size);  /* TODO(pts): Get an implementation from Coherent. */
+#else
+		dump(code, (int)sh.s_size);
+#endif
 	}
 	/* Print raw data. */
 	else if (!dswitch && strcmp(sh.s_name, ".bss")) { /* don't output bss */
@@ -349,7 +363,7 @@ readSection(n) register int n;
 				printf("address=0x%lx\tline=%d\n",
 					le.l_addr.l_paddr, le.l_lnno);
 			else
-				printf("function=%d\n", le.l_addr.l_symndx);
+				printf("function=%ld\n", le.l_addr.l_symndx);
 		}
 	}
 }
@@ -384,9 +398,9 @@ readStrings()
 	if (1 != fread(str_tab, len, 1, fp))
 		fatal("error reading string table %lx %d", ftell(fp), len);
 
-	for (str_ptr = str_tab; str_ptr < str_tab + str_length; ) {
+	for (str_ptr = (unsigned char*)str_tab; (char*)str_ptr < str_tab + str_length; ) {
 		putchar('\t');
-		while (c = *str_ptr++) {
+		while ((c = *str_ptr++)) {
 			if (c > '~') {
 				c &= 0x7f;
 				putchar('~');
@@ -432,8 +446,7 @@ readSymbols()
  * This is still pretty ad hoc, it may not do all entries correctly yet.
  * Does not print 0-valued fields.
  */
-void
-print_aux(n, sep) int n; register SYMENT *sep;
+void print_aux(int n, register SYMENT *sep)
 {
 	AUXENT ae;
 	register int type, class, i;
@@ -446,10 +459,10 @@ print_aux(n, sep) int n; register SYMENT *sep;
 		fatal("error reading symbol aux entry");
 	if (aswitch)
 		return;					/* suppressed */
-	printf("%4ld\t", n);				/* symbol number */
+	printf("%4d\t", n);				/* symbol number */
 	if (xswitch) {					/* dump in hex */
 		printf("\tAUX ENTRY DUMP\n");
-		dump(&ae, sizeof(ae));
+		dump((char*)&ae, sizeof(ae));
 		return;
 	}
 
@@ -485,25 +498,25 @@ print_aux(n, sep) int n; register SYMENT *sep;
 	}
 
 	/* Print tag index. */
-	if (l = ae.ae_tagndx)
+	if ((l = ae.ae_tagndx))
 		printf("\ttag=%ld", l);
 
 	/* Print fsize or lnsz info. */
 	if (has_fsize) {
-		if (l = ae.ae_fsize)
+		if ((l = ae.ae_fsize))
 			printf("\tfsize=%ld", l);
 	} else {
-		if (i = ae.ae_lnno)
+		if ((i = ae.ae_lnno))
 			printf("\tlnno=%d", i);
-		if (i = ae.ae_size)
+		if ((i = ae.ae_size))
 			printf("\tsize=%d", i);
 	}
 
 	/* Print fcn or ary info. */
 	if (has_fcn) {
-		if (l = ae.ae_lnnoptr)
+		if ((l = ae.ae_lnnoptr))
 			printf("\tlnnoptr=0x%lx", l);
-		if (l = ae.ae_endndx)
+		if ((l = ae.ae_endndx))
 			printf("\tend=%ld", l);
 	} else {
 		sp = ae.ae_dimen;
@@ -516,7 +529,7 @@ print_aux(n, sep) int n; register SYMENT *sep;
 	}
 
 	/* Print tv index. */
-	if (l = ae.ae_tvndx)
+	if ((l = ae.ae_tvndx))
 		printf("\ttv=%ld", l);
 
 	putchar('\n');
@@ -651,6 +664,7 @@ print_sym(se, n) register SYMENT *se; long n;
 
 	case C_USTATIC:			/* What is an undefined static? */
 		fatal("unexpected storage class 0x%x", i);
+		/* fallthrough */
 
 	default:
 		printf("0x%x", i);
@@ -665,15 +679,14 @@ print_sym(se, n) register SYMENT *se; long n;
 
 	if (eflag) {
 		printf("*** Bad data in name **\n");
-		dump(se, SYMESZ);
+		dump((char*)se, SYMESZ);
 	}
 }
 
 /*
  * Vertical hex dump of p bytes from buffer buf.
  */
-void
-dump(buf, p) register char *buf; register int p;
+void dump(register char *buf, register int p)
 {
 	register int i;
 
@@ -728,7 +741,7 @@ hex(c) register int c;
 /*
  * Mainline.
  */
-main(argc, argv) int argc; char *argv[];
+int main(argc, argv) int argc; char *argv[];
 {
 	register int i, c;
 
@@ -783,7 +796,7 @@ main(argc, argv) int argc; char *argv[];
 			break;
 		}
 	}
-	exit(0);
+	return 0;
 }
 
 /* end of cdmp.c */
