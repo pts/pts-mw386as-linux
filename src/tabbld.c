@@ -108,6 +108,8 @@ static unsigned nmask = 0;		/* take any on this mask */
 static unsigned lswitch;		/* do large ops only */
 static unsigned sswitch;		/* do small ops only */
 static unsigned bswitch;		/* produce error test */
+static unsigned dswitch;		/* don't generate document */
+static unsigned eswitch;		/* don't generate test.s */
 
 void showStats(int n);
 void opBld(void);
@@ -324,8 +326,8 @@ buildOp(void)
 			}
 			strcpy(thisGen, opc);
 
-			fprintf(odp, "%s %d 0!", opc, lineno);
-			fprintf(odp, "\t\\fB%s\\fR\t\t%s\n",
+			if (odp) fprintf(odp, "%s %d 0!", opc, lineno);
+			if (odp) fprintf(odp, "\t\\fB%s\\fR\t\t%s\n",
 				 opc, comment);
 
 			EXPAND(op);
@@ -448,9 +450,11 @@ register oper *this;
 		}
 		if (!c || isspace(c))
 			break;
-		fputc(c, otp);
-		if (',' == c)
-			fputc(' ', otp);
+		if (otp) {
+			fputc(c, otp);
+			if (',' == c)
+				fputc(' ', otp);
+		}
 	}
 	return (1);
 }
@@ -466,7 +470,7 @@ static int produce(char *n)
 	register oper *this;
 
 #ifdef TRACE
-	fprintf(otp, "{%s}", n);
+	if (otp) fprintf(otp, "{%s}", n);
 #endif
 	for (j = 0; j < operct; j++) {
 		this = opertab + j;
@@ -486,7 +490,7 @@ static int produce(char *n)
 	if (sswitch && ('%' == n[0])) /* remove % from regs is small tst */
 		n++;
 
-	fprintf(otp, "%s", n);
+	if (otp) fprintf(otp, "%s", n);
 	return (1);
 }
 
@@ -517,22 +521,24 @@ static void makeTst(char *n, int j)
 	if ((tmask && !(f->opt & tmask)) || (f->opt & nmask))
 		return;
 
-	fprintf(otp, "\t%s\t", n);
+	if (otp) fprintf(otp, "\t%s\t", n);
 	if (sswitch) {	/* reverse operands */
 		for (i = f->operands; i--; ) {
-			if (1 != (f->operands - i))
-				fprintf(otp, ", ");
+			if (1 != (f->operands - i)) {
+				if (otp) fprintf(otp, ", ");
+			}
 			produce(opertab[(unsigned char)f->ap[i]].name);
 		}
 	}
 	else {		
 		for (i = 0; i < f->operands; i++) {
-			if (i)
-				fprintf(otp, ", ");
+			if (i) {
+				if (otp) fprintf(otp, ", ");
+			}
 			produce(opertab[(unsigned char)f->ap[i]].name);
 		}
 	}
-	fprintf(otp, "\t/ %04x %04x\n", opt, opcode);
+	if (otp) fprintf(otp, "\t/ %04x %04x\n", opt, opcode);
 }
 
 /*
@@ -544,6 +550,7 @@ register funs *f;
 {
 	int i;
 
+	if (!odp) return;
 	if (-1 == curgen)
 		fprintf(odp, "%s %d 2!", opc, lineno);
 	else
@@ -1061,8 +1068,7 @@ int main(int argc, char *argv[])
 {
 	int c, subtest;
 
-	for (subtest = 0; EOF != (c = getopt(argc, argv, "blst:n:?"));) {
-		subtest = 1;	/* any options are a subtest */
+	for (subtest = 0; EOF != (c = getopt(argc, argv, "bdelst:n:?"));) {
 		switch (c) {
 		case 'b':
 			bswitch = 1;
@@ -1073,6 +1079,12 @@ int main(int argc, char *argv[])
 		case 's':
 			sswitch = 1;
 			break;
+		case 'd':
+			dswitch = 1;
+			continue;
+		case 'e':
+			eswitch = 1;
+			continue;
 		case 't':
 			sscanf(optarg, "%x", &tmask);
 			break;
@@ -1085,6 +1097,7 @@ int main(int argc, char *argv[])
 	 "usage: tabbld [-bls] [-t bits_to_match] [-n bits_not_to_match]\n");
 	 		exit (1);
 		}
+		subtest = 1;	/* any options are a subtest */
 	}
 			
 	/*
@@ -1097,8 +1110,9 @@ int main(int argc, char *argv[])
 	START(alln, 2000);
 	START(reg, 100);
 
-	otp = xopen("test.s", "w");
+	otp = eswitch ? NULL : xopen("test.s", "w");
 	if (subtest) {
+		if (otp) {
 		fprintf(otp, "\t.ttl\tSubtest of asm 386 ");
 		if (bswitch | lswitch | sswitch)
 			fputc('-', otp);
@@ -1113,16 +1127,17 @@ int main(int argc, char *argv[])
 		if (nmask)
 			fprintf(otp, " -n %x", nmask);
 		fputc('\n', otp);
+		}
 		odp = ohp = ofp = xopen("/dev/null", "w");
 	}
 	else {
-		fprintf(otp, "\t.ttl\tFull test of asm 386\n");
+		if (otp) fprintf(otp, "\t.ttl\tFull test of asm 386\n");
 		ofp = xopen("symtab.c", "w");	/* symbol table */
 		ohp = xopen("symtab.h", "w");	/* header file */
-		odp = xopen("document", "w");	/* document file */
+		odp = dswitch ? NULL : xopen("document", "w");	/* document file */
 	}
-	fprintf(otp, "\t.llen\t100\n");
-	fprintf(otp, "abc:\n");
+	if (otp) fprintf(otp, "\t.llen\t100\n");
+	if (otp) fprintf(otp, "abc:\n");
 	
 	/*
 	 * Process file.
@@ -1134,7 +1149,8 @@ int main(int argc, char *argv[])
 			continue;
 		case 0:
 			if (1 == state) {	/* pass through comments */
-				if (-1 == curgen)
+				if (!odp) {}
+				else if (-1 == curgen)
 					fprintf(odp, "%s %d 2!\t%s\n",
 						((optDoc & INDEF_JMP) ? "ja" : opc),
 						lineno, comment);
@@ -1158,7 +1174,7 @@ int main(int argc, char *argv[])
 			buildDir();
 		}
 	}
-	fclose(otp);
+	if (otp) fclose(otp);
 
 	if (subtest)
 		return (0);
