@@ -37,6 +37,7 @@ char *scpy();			/* make a new copy of a string */
 char *gcpy();			/* copy into tmp space */
 void yyerror(const char *fmt, ...);			/* display error msg */
 void fatal(const char *fmt, ...);			/* put a msg and die */
+void yywarn(const char *fmt, ...);
 char *trim();			/* trim trailing spaces and tabs */
 short  countList();		/* count things with next or prev ptrs */
 void freeLevel();		/* pop a logic level */
@@ -115,7 +116,8 @@ int _addargs(char *name, int *argcp, char ***argvp);
 
 void sTitle(void);
 void segInit(void);
-
+int macDelete(char *s, short t);
+void kindErr(unsigned short kind);
 
 /* from libs */
 #if 0

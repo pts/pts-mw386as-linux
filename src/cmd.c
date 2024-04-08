@@ -8,8 +8,34 @@
  * ICMD		ncmd		expr
  * DATA		dcmd		data list
  */
-#include <asm.h>
-#include <symtab.h>
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "asm.h"
+#include "symtab.h"
+
+void comm(opc *op, parm *p, long n);
+void cmnt(opc *op, parm *p);
+void doOrg(parm *label, data *oper);
+void coffDef(parm *s);
+void coffTag(parm *p);
+void coffFile(parm *s);
+void coffEndef(void);
+void coffType(long n);
+void coffVal(data *item);
+void coffLn(long n);
+void coffLine(long n);
+void coffSize(long n);
+void coffScl(long n);
+void coffDim(long n, int d);
+void outLine(char *p, char s);
+void outab(unsigned short b);
+void outaw(unsigned short u);
+void outal(long ul);
+void outrb(expr *oper, int sw);
+void outrw(expr *oper, int sw);
+void outrl(expr *oper, int sw);
 
 static unsigned short ct;
 
@@ -17,7 +43,7 @@ static unsigned short ct;
  * Check parm count. Print msg if one required.
  */
 static
-ckCount(no)
+int ckCount(int no)
 {
 	if(no == ct)
 		return(0);
@@ -47,10 +73,7 @@ setUpWhile()
 /*
  * Do commands with name, expr.
  */
-ecmd(label, op, p, item)
-opc *op;
-parm *label, *p;
-data *item;
+void ecmd(parm *label, opc *op, parm *p, data *item)
 {
 	long n = 0;
 
@@ -64,6 +87,7 @@ data *item;
 		case 'y':
 			if (op->kind == S_SET)
 				break;
+			/* fallthrough */
 		default:
 			yyerror("Invalid operand type"); /**/
 			return;
@@ -94,13 +118,12 @@ data *item;
 		break;
 
 	}
-	return 0;
 }
 
 /*
  * Do commands with string parms.
  */
-docmd(label, op, p)
+void docmd(label, op, p)
 opc *op;
 parm *p, *label;
 {
@@ -132,7 +155,7 @@ parm *p, *label;
 
 	case S_INCLUDE:
 		if(ckCount(1))
-			return(1);
+			return;
 		fileOpen(p->str);
 		break;
 
@@ -323,19 +346,17 @@ parm *p, *label;
 	default:
 		kindErr((unsigned short)op->kind);
 	}
-
-	return(0);
 }
 
 /*
  * Commands with a numexp as parm.
  */
-ncmd(label, op, item)
+void ncmd(label, op, item)
 parm *label;
 opc *op;
 data *item;
 {
-	long n;
+	long n = 0;  /* Pacify GCC about unitinitialized variable. */
 	data oper;
 
 	switch (item->type) {
@@ -345,6 +366,7 @@ data *item;
 	case 'y':
 		if ((op->kind == S_EQU) || (op->kind == S_VAL))
 			break;
+		/* fallthrough */
 	default:
 		yyerror("Invalid operand type"); /* NODOC */
 		return;
@@ -478,14 +500,14 @@ data *oper;
 				yyerror("Improper .string operand");
 				return;
 			}
-			for(str = oper->d.s; c = *str++; )
+			for(str = oper->d.s; (c = *str++); )
 				outab((unsigned short)c);
 			outab(0);
 			break;
 		case 0:			/* .byte */
 			switch(oper->type) {
 			case 's':
-				for(str = oper->d.s; c = *str++; )
+				for(str = oper->d.s; (c = *str++); )
 					outab((unsigned short)c);
 				break;
 			case 'y':
@@ -571,7 +593,7 @@ data *oper;
  * Output alignment bytes.
  */
 static int
-alignOut(seg, byte, n)
+alignOut(int seg, int byte, int n)
 {
 	int rv = 0;
 
@@ -601,7 +623,7 @@ alignOut(seg, byte, n)
 /*
  * Commands with a list of data as parm.
  */
-dcmd(label, op, oper)
+void dcmd(label, op, oper)
 parm *label;
 opc *op;
 data *oper;
@@ -609,11 +631,12 @@ data *oper;
 	register sym *sp = NULL;
 	register sym *y;
 	long start, n;
-	char b, s;
+	char b = 0, s = 0;  /* Pacify GCC about uninitialized variables. */
 
 	switch (op->kind) {
 	case S_ORG:
-		return(doOrg(label, oper));
+		doOrg(label, oper);
+		return;
 
 	case S_EVEN:	/* this is here to fall into .align */
 		s = dot.sg;
@@ -624,7 +647,7 @@ data *oper;
 		if (NULL == oper) {
 			yyerror("Missing operand");
 			/* \fB\&.align\fR must have 1 or 2 operands */
-			return(1);
+			return;
 		}
 		switch (oper->type) {
 		case 'l':
@@ -632,7 +655,7 @@ data *oper;
 			break;
 		default:
 			yyerror("Invalid operand type"); /* NODOC */
-			return(1);
+			return;
 		}
 		if ((3 != (s = dot.sg)) && (NULL != (oper = oper->next))) {
 			switch (oper->type) {
@@ -642,7 +665,7 @@ data *oper;
 				break;
 			default:
 				yyerror("Invalid operand type"); /* NODOC */
-				return(1);
+				return;
 			}
 		}
 
@@ -652,17 +675,17 @@ data *oper;
 			yyerror(".align must be 1, 2 or 4");
 		/* \fB\&.align\fR must work after the link.
 		 * These are the only values for which this can be true. */
-			return(1);
+			return;
 		}
 
 	even:	if (3 == dot.sg) {
-			oper.d.l = (dot.loc + n) & ~n;
-			oper.type = 'l';
-			doOrg(NULL, &oper);
+			oper->d.l = (dot.loc + n) & ~n;
+			oper->type = 'l';
+			doOrg(NULL, oper);
 		}
 		else
 			alignOut(s, b, n);
-		return(0);
+		return;
 
 	case S_DATA:
 		/* If alignment on and data and not .string or .byte */
@@ -733,11 +756,10 @@ data *oper;
 			continue;
 			default:
 				kindErr((unsigned short)op->kind);
-				return(1);
+				return;  /* Not reached. */
 		}
 	}
 
 	if(NULL != sp) /* finish label building */
 		sp->size = dot.loc - start;
-	return(0);
 }

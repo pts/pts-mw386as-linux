@@ -441,9 +441,7 @@ macLookUp(char *id, int type)
 /*
  * Delete a macro or equs.
  */
-int macDelete(s, t)
-char *s;
-short t;
+int macDelete(char *s, short t)
 {
 	register macro *mp, **pmp;
 	short ht;

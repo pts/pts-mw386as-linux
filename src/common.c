@@ -252,8 +252,7 @@ parm *label;
 /*
  * Table error detected.
  */
-void kindErr(kind)
-unsigned short kind;
+void kindErr(unsigned short kind)
 {
 	fatal("Table error kind %x detected", kind); /* TECH */
 }
