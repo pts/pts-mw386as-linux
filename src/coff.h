@@ -14,6 +14,21 @@
 #ifndef __COFF_H__
 #define __COFF_H__
 
+#undef COFF_PACKED_PRAGMA
+#if defined(__GNUC__) || defined(__TINYC__)
+#  define COFF_PACKED_STRUCT
+#  define COFF_PACKED __attribute__((__packed__))
+#else
+#  ifdef __WATCOMC__
+#    define COFF_PACKED_STRUCT _Packed
+#    define COFF_PACKED
+#  else
+#    define COFF_PACKED_STRUCT
+#    define COFF_PACKED
+#    define COFF_PACKED_PRAGMA
+#  endif
+#endif
+
 /* File header. */
 typedef	struct	filehdr	{
 	unsigned short	f_magic;		/* Magic number		*/
@@ -103,13 +118,20 @@ typedef	struct	shrlib	{
 
 
 /* Relocation items. */
+COFF_PACKED_STRUCT
 typedef	struct	reloc	{
-	long		r_vaddr;		/* Address (where)	*/
-	long		r_symndx;		/* Symbol index (what)	*/
+	long		r_vaddr COFF_PACKED;		/* Address (where)	*/
+	long		r_symndx COFF_PACKED;		/* Symbol index (what)	*/
 	unsigned short	r_type;			/* Type (how)		*/
+#ifdef COFF_PACKED_PRAGMA
 #pragma align 2
+#endif
 }	RELOC;
+#ifdef COFF_PACKED_PRAGMA
 #pragma align
+#endif
+
+typedef char assert_reloc_size[sizeof(RELOC) == 0xa ? 1 : -1];
 
 #define RELSZ	(sizeof(RELOC))
 
@@ -126,15 +148,20 @@ typedef	struct	reloc	{
 #define R_NONREL	0x00			/* Fake item for ld -r	*/
 
 /* Line number. */
+COFF_PACKED_STRUCT
 typedef struct lineno {
 	union	{
-		long	l_symndx;		/* Fn name symbol index	*/
-		long	l_paddr;		/* Physical address	*/
+		long	l_symndx COFF_PACKED;		/* Fn name symbol index	*/
+		long	l_paddr COFF_PACKED;		/* Physical address	*/
 	} l_addr;
 	unsigned short l_lnno;			/* Line num., 0 for fn	*/
+#ifdef COFF_PACKED_PRAGMA
 #pragma align 2
-}	LINENO;
+#endif
+} COFF_PACKED	LINENO;
+#ifdef COFF_PACKED_PRAGMA
 #pragma align
+#endif
 
 #define	LINESZ	(sizeof(LINENO))
 
@@ -143,23 +170,30 @@ typedef struct lineno {
 #define FILNMLEN	14			/* Chars in file name	*/
 #define DIMNUM		4			/* Dims in aux entry	*/
 
+COFF_PACKED_STRUCT
 typedef	struct	syment	{
 	union	{
 		char	_n_name[SYMNMLEN];	/* Name			*/
 		struct	{
-			long	_n_zeroes;	/* If name[0-3] zero,	*/
-			long	_n_offset;	/* string table offset	*/
+			long	_n_zeroes COFF_PACKED;	/* If name[0-3] zero,	*/
+			long	_n_offset COFF_PACKED;	/* string table offset	*/
 		} _n_n;
 		char	*_n_nptr[2];
 	} _n;
-	long		n_value;		/* Value		*/
+	long		n_value COFF_PACKED;		/* Value		*/
 	short		n_scnum;		/* Section number	*/
 	unsigned short	n_type;			/* Type			*/
 	char		n_sclass;		/* Storage class	*/
 	char		n_numaux;		/* Auxilliary entries	*/
+#ifdef COFF_PACKED_PRAGMA
 #pragma align 2
-}	SYMENT;
+#endif
+} COFF_PACKED	SYMENT;
+#ifdef COFF_PACKED_PRAGMA
 #pragma align
+#endif
+
+typedef char assert_syment_size[sizeof(SYMENT) == 0x12 ? 1 : -1];
 
 #define SYMESZ	(sizeof(SYMENT))
 #define	n_name		_n._n_name
@@ -240,38 +274,43 @@ typedef	struct	syment	{
 #define DECREF(x) ((((x)>>N_TSHIFT)&~N_BTMASK)|((x)&N_BTMASK))
 
 /* Symbol aux entries. */
+COFF_PACKED_STRUCT
 typedef union auxent	{
+#ifdef COFF_PACKED_PRAGMA
 #pragma align 2
+#endif
 	struct	{
-		long	x_tagndx;	/* struct/union/enum tag index	*/
+		long	x_tagndx COFF_PACKED;	/* struct/union/enum tag index	*/
 		union	{
 			struct	{
 				unsigned short	x_lnno;	/* Decl. line	*/
 				unsigned short	x_size;	/* Size		*/
 			} x_lnsz;
-			long	x_fsize;	/* Function size	*/
+			long	x_fsize COFF_PACKED;	/* Function size	*/
 		} x_misc;
 		union	{
 			struct	{		/* Functions		*/
-				long	x_lnnoptr;	/* line # ptr	*/
-				long	x_endndx;	/* index of .eb	*/
+				long	x_lnnoptr COFF_PACKED;	/* line # ptr	*/
+				long	x_endndx COFF_PACKED;	/* index of .eb	*/
 			} x_fcn;
 			struct	{		/* Arrays		*/
 				unsigned short x_dimen[DIMNUM];	/* Dims	*/
 			} x_ary;
 		} x_fcnary;
 		unsigned short	x_tvndx;	/* TV index		*/
-	} x_sym;
+	} x_sym COFF_PACKED;
 	struct {				/* File names		*/
 		char x_fname[FILNMLEN];		/* File name		*/
 	} x_file;
 	struct	{				/* Sections		*/
-		long	x_scnlen;		/* Section length	*/
+		long	x_scnlen COFF_PACKED;		/* Section length	*/
 		unsigned short	x_nreloc;	/* Reloc entrys		*/
 		unsigned short	x_nlinno;	/* Line number entries	*/
 	} x_scn;
-}	AUXENT;
+} COFF_PACKED	AUXENT;
+#ifdef COFF_PACKED_PRAGMA
 #pragma align
+#endif
 #define	ae_tagndx	x_sym.x_tagndx
 #define	ae_lnno		x_sym.x_misc.x_lnsz.x_lnno
 #define	ae_size		x_sym.x_misc.x_lnsz.x_size
@@ -285,6 +324,8 @@ typedef union auxent	{
 #define	ae_nreloc	x_scn.x_nreloc
 #define	ae_nlinno	x_scn.x_nlinno
 #define AUXESZ	(sizeof(AUXENT))
+
+typedef char assert_auxent_size[sizeof(AUXENT) == 0x12 ? 1 : -1];
 
 #endif						 /* COFF_H */
 
