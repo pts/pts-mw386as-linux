@@ -121,7 +121,7 @@ char *ctime();
 char *realloc();
 long atol();
 long time();
-double strtod();
+double as_strtod(const char *nptr; char **endptr);
 void free();
 void exit();
 

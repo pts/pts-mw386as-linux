@@ -12,12 +12,15 @@
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
-
-#if	__STDC__
+#include <limits.h>  /* ULONG_MAX */
 #include <float.h>
-#include <locale.h>
-#else
+
+double _pow10(int exp);
+
+#ifndef _decimal_point
 #define	_decimal_point	'.'
+#endif
+#if 0
 #define	DBL_MIN_10_EXP	-37		/* DECVAX fp */
 #define	DBL_MAX_10_EXP	38
 #endif
@@ -33,14 +36,14 @@
 #define	UNDER	32			/* underflow		*/
 
 double
-strtod(nptr, endptr) char *nptr; char **endptr;
+as_strtod(const char *nptr, char **endptr)
 {
-	register char *cp;
+	register const char *cp;
 	register int c, flag, eexp;
 	register unsigned long val;
 	int exp, edigits, sdigits, vdigits;
 	double d;
-	char *savcp;
+	const char *savcp;
 
 	cp = nptr;
 	val = flag = exp = sdigits = vdigits = 0;
@@ -75,7 +78,8 @@ strtod(nptr, endptr) char *nptr; char **endptr;
 			c -= '0';
 			if (c == 0 && (flag & DOT)) {
 				/* Check for trailing zeros, to avoid imprecision.  */
-				char *look, d;
+				const char *look;
+				char d;
 
 				for (look = cp; (d = *look++) == '0';)
 					;
@@ -169,7 +173,7 @@ strtod(nptr, endptr) char *nptr; char **endptr;
 
 done:
 	if (endptr != (char **)NULL)
-		*endptr = cp;
+		*endptr = (char*)cp;
 	if (flag & UNDER) {
 		errno = ERANGE;
 		return 0.0;

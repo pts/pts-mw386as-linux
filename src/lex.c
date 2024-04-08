@@ -939,7 +939,7 @@ yylex()
 			continue;
 		}
 		if (('.' == c) || ('e' == c) || ('E' == c)) {
-			yylval.dbl = strtod(backOff, &bp);
+			yylval.dbl = as_strtod(backOff, &bp);
 			RSTATE(FNUM, WHITE)
 		}
 		bp--;
@@ -949,7 +949,7 @@ yylex()
 	case LZERO:
 		switch(c) {
 		case '.':
-			yylval.dbl = strtod(backOff, &bp);
+			yylval.dbl = as_strtod(backOff, &bp);
 			RSTATE(FNUM, WHITE)
 		case 'x':
 		case 'X':

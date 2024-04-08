@@ -1407,7 +1407,7 @@ case 106: {
 
 #line 627 "asm.y"
 
-		yyval.dbl = strtod(yypvt[0].t, (char **)NULL); }break;
+		yyval.dbl = as_strtod(yypvt[0].t, (char **)NULL); }break;
 
 case 107: {
 
