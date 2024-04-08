@@ -2,6 +2,8 @@
  * libc/gen/ieee_d.c
  */
 
+#include <string.h>
+
 /*
  * ieee_d(double *idp, double *ddp)
  * Convert double from DECVAX format to IEEE format.
@@ -20,7 +22,7 @@ ieee_d(idp, ddp) double *idp, *ddp;
 	register int exp;
 
 	/* Extract biased exponent. */
-	cp = (char *)ddp;
+	cp = (unsigned char *)ddp;
 	exp = ((cp[7] & 0x7F) << 1) | ((cp[6] & 0x80) >> 7);
 
 	if (exp == 0) {
