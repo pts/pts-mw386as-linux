@@ -9,7 +9,7 @@
  */
 
 #include <stdlib.h>
-#include <ctype.h>
+#include "utype.h"
 #include <errno.h>
 #include <math.h>
 #include <limits.h>  /* ULONG_MAX */

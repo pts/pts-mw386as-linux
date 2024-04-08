@@ -3,7 +3,7 @@
  */
 #include <asm.h>
 #include <coff.h>
-#include <utype.h>
+#include "utype.h"
 #include <symtab.h>
 
 #define WHERE 0x40A09C

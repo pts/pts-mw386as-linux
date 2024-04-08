@@ -2,7 +2,7 @@
  * This is the controlling loop in the assembler.
  *
  */
-#include <utype.h>
+#include "utype.h"
 #include <asm.h>
 #include <asflags.h>
 #include <y_tab.h>

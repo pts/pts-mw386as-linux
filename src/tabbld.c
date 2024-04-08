@@ -3,7 +3,7 @@
  * Also build .h file and assembler test file.
  */
 #include <misc.h>
-#include <ctype.h>
+#include "utype.h"
 #include "asflags.h"
 
 typedef struct opts opts;
