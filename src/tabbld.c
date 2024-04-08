@@ -826,8 +826,12 @@ void outData(void)
 			f->type,
 			f->opt & 0xffff,
 			f->operands);
-		for (j = 0; j < f->operands; j++)
-			fprintf(ofp, "%s%s", ", " + (j == 0), opertab[(unsigned char)f->ap[j]].name);
+		if (f->operands) {
+			for (j = 0; j < f->operands; j++)
+				fprintf(ofp, "%s%s", ", " + (j == 0), opertab[(unsigned char)f->ap[j]].name);
+		} else {
+			fputs(" 0", ofp);  /* C89 doesn't allow empty initializers. */
+		}
 		fprintf(ofp, " } }%s\n", ((++i < funct) ? "," : ""));
 	}
 	fprintf(ofp, "};\n\n");
