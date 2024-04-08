@@ -7,6 +7,7 @@ ldiv_t ldiv(numer, denom) long numer, denom;
 	l.rem = numer % denom;
 	return l;
 }
+
 /*-----------------------------------------------------------------*/
 /* Efficient and Portable Combined Random Number Generators */
 /* Pierre L'Ecuyer */
