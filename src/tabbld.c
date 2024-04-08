@@ -98,8 +98,8 @@ static unsigned nameCt;	/* name count */
 static int lastp;	/* last entry on prefTab */
 static short ct, opcode, opt;
 static unsigned long optDoc;
-static char fname[22], opc[10], op1[10], op2[10], op3[10], cmd[10], yt[10];
-static char thisGen[10];
+static char fname[22], opc[22], op1[22], op2[22], op3[22], cmd[22], yt[22];
+static char thisGen[22];
 static int errors;		/* error count */
 
 /* test selector switches */
@@ -285,7 +285,7 @@ void
 buildReg(void)
 {
 	register regs *new;
-	char name[20], ytype[20];
+	char name[22], ytype[22];
 	int i, j;
 
 	EXPAND(reg);
@@ -407,7 +407,7 @@ pickRand(this)
 register oper *this;
 {
 	int i;
-	char c, *p, state, work[20];
+	char c, *p, state, work[22];
 
 	if (bswitch && this->badct) {
 		p = this->badlist;
@@ -792,7 +792,7 @@ void outData(void)
 	register opts *this, *that;
 	register funs *f;
 	regs *r;
-	char *p, work[20];
+	char *p, work[22];
 	int i, j, k, l;
 
 	fprintf(ohp, "/*\n");
