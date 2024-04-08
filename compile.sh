@@ -28,7 +28,8 @@ if ! test -f as; then
       tools/mv "Coherent Unix 4.2.10 (1994) (3.5-1.44mb)/base/ddk32.dd" ./
     else
       if ! test -f "Coherent Unix 4.2.10 (1994) (3.5-1.44mb).7z"; then
-        : 'Download "Coherent Unix 4.2.10 (1994) (3.5-1.44mb).7z" from https://winworldpc.com/download/532ebb91-483c-11ed-b2b1-0200008a0da4'
+        : 'Recommended download: https://www.tuhs.org/Archive/Distributions/Other/Coherent/base/ddk32.dd'
+        : 'Alternative download "Coherent Unix 4.2.10 (1994) (3.5-1.44mb).7z" from https://winworldpc.com/download/532ebb91-483c-11ed-b2b1-0200008a0da4'
         exit 1
       fi
       7z x -y "Coherent Unix 4.2.10 (1994) (3.5-1.44mb).7z" "Coherent Unix 4.2.10 (1994) (3.5-1.44mb)/base/ddk32.dd" ||:
