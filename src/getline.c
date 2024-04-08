@@ -22,9 +22,11 @@
  * \ddd octal number
  * all other \ sequences are errors.
  */
-#include <misc.h>
 
-extern char *realloc();
+#include <stdio.h>
+#include <stdlib.h>
+
+void fatal(const char *fmt, ...);
 
 static char *line = NULL;
 char *comment = NULL;
@@ -36,7 +38,7 @@ static int j = 0, csize = 0;	/* stuff for comment */
  * Add char to line.
  */
 static void
-addchr(c)
+addchr(char c)
 {
 	while (i >= size)
 		if (NULL == (line = realloc(line, size += 80)))
@@ -49,7 +51,7 @@ addchr(c)
  * Add char to comment.
  */
 static void
-addcom(c)
+addcom(char c)
 {
 	while (j >= csize)
 		if (NULL == (comment = realloc(comment, csize += 80)))
@@ -62,7 +64,8 @@ getline(ifp, lineno)
 FILE *ifp;
 int *lineno;
 {
-	int c, octacc, octcnt;
+	int c;
+	int octacc = 0, octcnt = 0;  /* Initialize to 0 to pacify GCC 4.8 warning about uninitialized local variable. */
 	enum state { normal, incont, incomm, incommb, bsl, octdig } state;
 
 	*lineno += oldline;
