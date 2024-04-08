@@ -2,7 +2,10 @@
  * Get space or die.
  */
 #include <stdio.h>
-char *memset();
+#include <stdlib.h>
+#include <string.h>
+
+void fatal(const char *fmt, ...);
 
 char *
 alloc(n)
