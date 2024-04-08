@@ -110,7 +110,7 @@ char *s;
  * # as first char of line foils replacment.
  */
 static char *
-expand(register char *s, int recurs)
+lex_expand(register char *s, int recurs)
 {
 	register char c = 0;  /* Pacify GCC about uninitialized variable. */
 	char *tp = 0, *rep = 0, *newl, *start;  /* Pacify GCC about uninitialized variables. */
@@ -145,11 +145,11 @@ expand(register char *s, int recurs)
 				sav = *tp;	/* stomp parm name */
 				*tp = '\0';
 				if (NULL == mac)	/* parm match */
-					rep = expand(rep, 1);
+					rep = lex_expand(rep, 1);
 				else {	/* equs match */
 					rep = mac->names->str;
 					mac->type = MACSCAN;
-					rep = expand(rep, 1);
+					rep = lex_expand(rep, 1);
 					mac->type = MACSTR;
 				}
 				point = strlen(start) + strlen(rep);
@@ -420,7 +420,7 @@ startLine()
 	   (';' != lastChar) &&
 	   (defCt || (NULL != trueMac)) &&
 	   ((ctype > INPWDEF) || (ctype < INWDEF))) {
-		bp = lastL = expand(bp, 0);
+		bp = lastL = lex_expand(bp, 0);
 
 		if ((lastL != buf) && (fromMac != '+')) {
 			outLine(buf, fromMac);

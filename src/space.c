@@ -70,9 +70,7 @@ initStor()
 /*
  * Expand an area.
  */
-void expand(area, current, by, size)
-char **area;
-unsigned *current, by, size;
+void expand(char **area, unsigned *current, unsigned by, unsigned size)
 {
 	if (NULL == (*area = realloc(*area, size * (*current += by))))
 		fatal("Out of space");	/* NODOC */

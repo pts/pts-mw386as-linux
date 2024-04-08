@@ -116,6 +116,7 @@ extern FILE *errdev;	/* Where to put out errors */
 
 double as_strtod(const char *nptr, char **endptr);
 int _addargs(char *name, int *argcp, char ***argvp);
+void expand(char **area, unsigned *current, unsigned by, unsigned size);
 
 void sTitle(void);
 void segInit(void);

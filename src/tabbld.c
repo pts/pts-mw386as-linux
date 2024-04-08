@@ -2,9 +2,23 @@
  * Build code tables for 80386 assembler.
  * Also build .h file and assembler test file.
  */
-#include <misc.h>
+
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "utype.h"
 #include "asflags.h"
+
+char *newcpy(register char *s);
+long randl(void);
+char *alloc(unsigned n);
+extern char *optarg;
+int getopt(int argc, char * const argv[], const char *optstring);
+unsigned short hash(register char *p);
+FILE *xopen(const char *fn, const char *acs);
+char *getline(FILE *ifp, int *lineno);
 
 typedef struct opts opts;
 typedef struct funs funs;
@@ -61,7 +75,7 @@ struct regs {
 } *regtab;
 short regct, reglen;
 
-#define START(n, m) n##tab = alloc((n##len = m) * sizeof(*n##tab))
+#define START(n, m) n##tab = (void*)alloc((n##len = m) * sizeof(*n##tab))
 
 /* expander for tables */
 #define EXPAND(n) if((n##len <= (++n##ct)) \
@@ -73,11 +87,9 @@ short regct, reglen;
  && (NULL == (n##tab = realloc(n##tab, n##len += 10)))) \
 	outSpace(__LINE__)
 
-extern char *realloc(), *strstr(), *getline(), *newcpy();
-extern unsigned short hash();
 extern char *comment;	/* from getline() */
 
-static FILE *ofp, *ohp, *otp, *odp, *oxp;	/* output files */
+static FILE *ofp, *ohp, *otp, *odp;	/* output files */
 static char *line;	/* input line */
 static int lineno = 1;	/* line number */
 static int state;	/* opcodes, registers commands */
@@ -88,7 +100,7 @@ static short ct, opcode, opt;
 static unsigned long optDoc;
 static char fname[22], opc[10], op1[10], op2[10], op3[10], cmd[10], yt[10];
 static char thisGen[10];
-static errors;		/* error count */
+static int errors;		/* error count */
 
 /* test selector switches */
 static unsigned tmask = 0;		/* reject any not on this mask */
@@ -97,20 +109,28 @@ static unsigned lswitch;		/* do large ops only */
 static unsigned sswitch;		/* do small ops only */
 static unsigned bswitch;		/* produce error test */
 
+void showStats(int n);
+void opBld(void);
+static int produce(char *n);
+int findOpr(char *name);
+
 /*
  * Report error.
  */
-error(s)
-char *s;
+void error(const char *fmt, ...)
 {
-	fprintf(stderr, "%d: %r\n", lineno, &s);
+	va_list ap;
+	fprintf(stderr, "%d: ", lineno);
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	fputs("\n", stderr);
 	errors++;
 }
 
 /*
  * Out of space. or normal end.
  */
-outSpace(line)
+void outSpace(int line)
 {
 	if (line)
 		fprintf(stderr, "Out of space at %d\n", line);
@@ -120,7 +140,7 @@ outSpace(line)
 /*
  * Show generation statistics and exit.
  */
-showStats(n)
+void showStats(int n)
 {
 	fprintf(stderr, "opct = %d, funct = %d, lineno = %d, ",
 		opct, funct, lineno);
@@ -137,7 +157,7 @@ showStats(n)
  * ? delimits bad choices.
  */
 void
-buildTst()
+buildTst(void)
 {
 	register struct oper *this;
 	register char *p;
@@ -150,16 +170,19 @@ buildTst()
 	switch (line[0]) {	/* mark base and extra */
 	case '.':
 		this->base = ++base;
+		/* fallthrough */
 	case '!':
 		this->flag = (X_LARGE|X_SMALL);
 		break;
 	case 'B':
 		this->base = ++base;
+		/* fallthrough */
 	case 'E':
 		this->flag = X_LARGE;
 		break;
 	case 'b':
 		this->base = ++base;
+		/* fallthrough */
 	case 'e':
 		this->flag = X_SMALL;
 		break;
@@ -176,7 +199,7 @@ buildTst()
 
 	/* Count the valid productions on the line */
 	this->goodlist = p;
-	for (state = 0; c = *p; p++) {
+	for (state = 0; (c = *p); p++) {
 		if (state) {	/* in a production */
 			if (!isspace(c)) {
 				if ('?' == c)
@@ -200,7 +223,7 @@ buildTst()
 
 	/* count the invalid productions on the line */
 	this->badlist = p;
-	for (state = this->badct = 0; c = *p; p++) {
+	for (state = this->badct = 0; (c = *p); p++) {
 		if (state) {
 			if (!isspace(c))
 				continue;
@@ -218,13 +241,14 @@ buildTst()
 /*
  * Build assembler directives.
  */
-buildDir()
+void buildDir(void)
 {
 	register funs *f;
 	register opts *this;
 	int i, j;
 
-	sscanf(line, "%d %s %s %s", &opcode, opc, cmd, yt);
+	sscanf(line, "%d %s %s %s", &i, opc, cmd, yt);
+	opcode = i;
 	sprintf(fname, "S_%s", cmd);
 
 	for (j = 0; j < funct; j++)
@@ -258,17 +282,20 @@ buildDir()
  * Build register name entrys.
  */
 void
-buildReg()
+buildReg(void)
 {
 	register regs *new;
 	char name[20], ytype[20];
+	int i, j;
 
 	EXPAND(reg);
 	new = regtab + regct - 1;
 
 	sscanf(line,
 		 "%s %s %d %d",
-		 name, ytype, &new->loc, &new->len);
+		 name, ytype, &i, &j);
+	new->loc = i;
+	new->len = j;
 	new->name  = newcpy(name);
 	new->ytype = newcpy(ytype);
 }
@@ -277,10 +304,11 @@ buildReg()
  * Read and preprocess opcode
  */
 void
-buildOp()
+buildOp(void)
 {
 	register opts *this;
 	char optf[8], *p;
+	int i;
 
 	optDoc = opc[0] = op1[0] = op2[0] = op3[0] = '\0';
 	sscanf(line, "%s %s", optf, opc);
@@ -314,7 +342,8 @@ buildOp()
 	if (!opc[0])
 		error("Null name");
 
-	sscanf(line, "%s %x %s %s %s %s", optf, &opcode, opc, op1, op2, op3);
+	sscanf(line, "%s %x %s %s %s %s", optf, &i, opc, op1, op2, op3);
+	opcode = i;
 
 	for (p = optf; ; p++) {
 		switch(*p) {
@@ -389,7 +418,7 @@ register oper *this;
 		i = randl() % this->goodct;
 	}
 
-	for (state = 0; c = *p; p++) {
+	for (state = 0; (c = *p); p++) {
 		if (state) {
 			if (isspace(c))
 				state = 0;
@@ -431,9 +460,7 @@ register oper *this;
  * production for a limited test. That is if we are testing
  * all small stuff this returns 0 is asked to produce %eax
  */
-static int
-produce(n)
-char *n;
+static int produce(char *n)
 {
 	register int j;
 	register oper *this;
@@ -466,9 +493,7 @@ char *n;
 /*
  * make test file entrys.
  */
-static void
-makeTst(n, j)
-char *n;
+static void makeTst(char *n, int j)
 {
 	register funs *f;
 	register opts *this;
@@ -481,12 +506,12 @@ char *n;
 	/* can we do this */
 	if (lswitch)	/* large only test */
 		for (i = 0; i < f->operands; i++)
-			if (!(opertab[f->ap[i]].flag & X_LARGE))
+			if (!(opertab[(unsigned char)f->ap[i]].flag & X_LARGE))
 				return;
 
 	if (sswitch)	/* small only test */
 		for (i = 0; i < f->operands; i++)
-			if (!(opertab[f->ap[i]].flag & X_SMALL))
+			if (!(opertab[(unsigned char)f->ap[i]].flag & X_SMALL))
 				return;
 
 	if ((tmask && !(f->opt & tmask)) || (f->opt & nmask))
@@ -497,14 +522,14 @@ char *n;
 		for (i = f->operands; i--; ) {
 			if (1 != (f->operands - i))
 				fprintf(otp, ", ");
-			produce(opertab[f->ap[i]].name);
+			produce(opertab[(unsigned char)f->ap[i]].name);
 		}
 	}
 	else {		
 		for (i = 0; i < f->operands; i++) {
 			if (i)
 				fprintf(otp, ", ");
-			produce(opertab[f->ap[i]].name);
+			produce(opertab[(unsigned char)f->ap[i]].name);
 		}
 	}
 	fprintf(otp, "\t/ %04x %04x\n", opt, opcode);
@@ -549,7 +574,7 @@ register funs *f;
 	if (f->operands) {
 		fprintf(odp, "\t\\fI");
 		for (i = 0; i < f->operands; i++) {
-			char *n = opertab[f->ap[i]].name;
+			char *n = opertab[(unsigned char)f->ap[i]].name;
 
 			if (i)
 				fprintf(odp, ",");
@@ -569,10 +594,10 @@ register funs *f;
 /*
  * Build opcode and function entrys.
  */
-opBld()
+void opBld(void)
 {
 	register opts *this;
-	register funs *f;
+	register funs *f = 0;  /* Pacify GCC about uninitialized variable. */
 	int i, j, k;
 
 	if (op3[0]) {
@@ -639,8 +664,7 @@ opBld()
 /*
  * Find operand on table or report error.
  */
-findOpr(name)
-char *name;
+int findOpr(char *name)
 {
 	int i;
 
@@ -652,22 +676,23 @@ char *name;
 			return (i);
 
 	error("undefined operand %s", name);
+	return -1;
 }
 
 /*
  * Comparison routine by inverse name length, then name, then order given.
  */
-compr1(p1, p2)
-register opts *p1, *p2;
+int compr1(const void *vp1, const void *vp2)
 {
-	register i;
+	register int i;
+	register const opts *p1 = (const opts*)vp1, *p2 = (const opts*)vp2;
 
 	/* long names then short */
-	if (i = strlen(p2->name) - strlen(p1->name))
+	if ((i = strlen(p2->name) - strlen(p1->name)))
 		return (i);
 
 	/* alpha order */
-	if (i = strcmp(p1->name, p2->name))
+	if ((i = strcmp(p1->name, p2->name)))
 		return(i);
 
 	return (p1->lineno - p2->lineno); /* in order given */
@@ -676,17 +701,17 @@ register opts *p1, *p2;
 /*
  * Comparison routine by name length, then name, then input position.
  */
-compr2(p1, p2)
-register opts *p1, *p2;
+int compr2(const void *vp1, const void *vp2)
 {
-	register i;
+	register int i;
+	register const opts *p1 = (const opts*)vp1, *p2 = (const opts*)vp2;
 
 	/* short names then long */
-	if (i = strlen(p1->name) - strlen(p2->name))
+	if ((i = strlen(p1->name) - strlen(p2->name)))
 		return (i);
 
 	/* alpha order */
-	if (i = strcmp(p1->name, p2->name))
+	if ((i = strcmp(p1->name, p2->name)))
 		return (i);
 
 	return (p1->lineno - p2->lineno); /* in order given */
@@ -695,9 +720,10 @@ register opts *p1, *p2;
 /*
  * Organize tables.
  */
-reorgData()
+void reorgData(void)
 {
-	register opts *this, *that, *last;
+	register opts *this = 0;  /* Pacify GCC about uninitialized variable. */
+	register opts *that, *last;
 	char *p;
 	int i, j, k;
 
@@ -761,7 +787,7 @@ reorgData()
 /*
  * Output all tables.
  */
-outData()
+void outData(void)
 {
 	register opts *this, *that;
 	register funs *f;
@@ -786,7 +812,7 @@ outData()
 	fprintf(ohp, "/* operand types */\n");
 	/* dump base operand types */
 	for (i = 0; i < operct; i++)
-		if (j = opertab[i].base)
+		if ((j = opertab[i].base))
 			fprintf(ohp, "#define %-9s %2d\n", opertab[i].name, j);
 
 	/* dump function table */
@@ -801,7 +827,7 @@ outData()
 			f->opt & 0xffff,
 			f->operands);
 		for (j = 0; j < f->operands; j++)
-			fprintf(ofp, ", %s", opertab[f->ap[j]].name);
+			fprintf(ofp, ", %s", opertab[(unsigned char)f->ap[j]].name);
 		fprintf(ofp, " }%s\n", ((++i < funct) ? "," : ""));
 	}
 	fprintf(ofp, "};\n\n");
@@ -816,6 +842,7 @@ outData()
 			break;
 		case 10:
 			i = 0;
+			/* fallthrough */
 		default:
 			fprintf(ofp, " ");
 		}
@@ -902,10 +929,10 @@ outData()
 	free(funtab);
 
 	/* set up hash table to mark */
-	htab = alloc(nameCt * sizeof(*htab));
+	htab = (short*)alloc(nameCt * sizeof(*htab));
 	fprintf(ohp, "#define OPCOUNT %d /* count of opcodes */\n", nameCt);
 
-	for (i = 0; i < nameCt; i++)
+	for (i = 0; i + 0U < nameCt; i++)
 		htab[i] = -1;
 
 	/* mark all items that hash direct */
@@ -933,9 +960,9 @@ outData()
 			continue;
 
 		 /* find a hole */
-		for (k = 0;(k < nameCt) && (htab[k] != -1); k++)
+		for (k = 0;(k + 0U < nameCt) && (htab[k] != -1); k++)
 			;
-		if (k == nameCt) {
+		if (k + 0U == nameCt) {
 			errors++;
 			fprintf(stderr, "Insufficient holes in table");
 			continue;
@@ -956,7 +983,7 @@ outData()
 	}
 
 	fprintf(ofp, "nhash hashCodes[] = {\n");
-	for (i = 0; i < nameCt;) {
+	for (i = 0; i + 0U < nameCt;) {
 		j = htab[i++];
 		if (j < 0 || j > opct) {
 			errors++;
@@ -974,7 +1001,7 @@ outData()
 			this->len,
 			this->count,	/* entries on pref table */
 			this->opcode,	/* entry on pref table */
-			((i == nameCt) ? ' ' : ','),
+			((i + 0U == nameCt) ? ' ' : ','),
 			work,
 			i - 1);
 	}
@@ -1026,12 +1053,9 @@ outData()
 /*
  * Process opcode files.
  */
-main(argc, argv)
-char *argv[];
+int main(int argc, char *argv[])
 {
 	int c, subtest;
-	extern char *optarg;
-	extern int optind;
 
 	for (subtest = 0; EOF != (c = getopt(argc, argv, "blst:n:?"));) {
 		subtest = 1;	/* any options are a subtest */
