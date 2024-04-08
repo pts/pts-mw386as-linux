@@ -2,6 +2,9 @@
  * Open a file or die in the attempt.
  */
 #include <stdio.h>
+
+void fatal(const char *fmt, ...);
+
 FILE *
 xopen(fn, acs)
 char *fn, *acs;
