@@ -25,3 +25,8 @@ and it will tell you where to download *as* from. Then run `./compile.sh` to
 build and test the *mw386as* executable, which is the same size as the
 original *as* file, but the Coherent-speficic parts are binary-pathed to be
 specific to Linux i386 instead.
+
+An alternative executable from 1992-09-11 has been open sourced as part of
+the
+[as,v](https://github.com/gspu/Coherent/blob/master/mwc/romana/relic/b/bin/as/RCS/as%2Cv)
+RCS file. This hasn't been ported to Linux i386 yet.
