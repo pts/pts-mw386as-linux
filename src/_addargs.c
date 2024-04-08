@@ -4,14 +4,11 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "utype.h"
 
 #define	NBUF	128
-
-/* External. */
-extern char *getenv();
-extern char *malloc();
 
 /* Forward. */
 static	char	**copyargs();
