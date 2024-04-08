@@ -1,12 +1,19 @@
 /*
  * Initialize the assembler
  */
-#include <asm.h>
 
-#ifdef COHERENT
+#include <string.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include "asm.h"
+
+void yyparse(void);
+
+#if !defined(MSDOS) && !defined(_WIN32)
 #define SLASH '/'
 #else
-#define SLASH '\\'
+#define SLASH '\\'  /* TODO(pts): Smarter, accept both / and \ on Windows. */
 #endif
 
 #if 0
@@ -56,8 +63,8 @@ dodefs()
 			else
 				symLookUp(gcpy(optarg, 0), S_XSYM, atol(p), 0);
 			*--p = '=';
-		default:
-			continue;
+			break;
+		default: break;
 		}
 	}
 }
@@ -75,8 +82,7 @@ usage()
 /*
  * process arguments and call yyparse.
  */
-main(argc, argv)
-char **argv;
+int main(int argc, char **argv)
 {
 	register char *p, c;
 	char *fileName;
@@ -161,6 +167,7 @@ char **argv;
 		case 'D':	/* process in dodefs */
 		case 'E':
 			dodefsw = 1;
+			/* fallthrough */  /* TODO(pts): bugfix: don't fall through */
 		case 'V':
 			fprintf(stderr, "Mark Williams 80386 assembler\n");
 			break;
@@ -203,11 +210,12 @@ char **argv;
 		long t;
 
 		time(&t);
-		c = strlen(dTime = ctime(&t)) - 1;
-		dTime[c] = '\0';
+		dTime = ctime(&t);
+		dTime[strlen(dTime) - 1] = '\0';
 	}
 
 	dodefs();
 	yyparse();
 	fatal("Unexpected return from parser"); /* TECH */
+	return -1;  /* Not reached. */
 }

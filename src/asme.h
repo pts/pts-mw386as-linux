@@ -111,8 +111,11 @@ extern long showSym;
 extern FILE *errdev;	/* Where to put out errors */
 
 double as_strtod(const char *nptr, char **endptr);
+int _addargs(char *name, int *argcp, char ***argvp);
 
 void sTitle(void);
+void segInit(void);
+
 
 /* from libs */
 #if 0
