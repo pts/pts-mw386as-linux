@@ -489,8 +489,7 @@ sym *sp;
 /*
  * output symbol table entry.
  */
-SYMENT *
-outSym(sp)
+void outSym(sp)
 register sym *sp;
 {
 	static SYMENT s;
@@ -534,7 +533,6 @@ register sym *sp;
 		s.n_value += segs[sp->sg - 1].s_vaddr;
 
 	owrite((const char*)&s, sizeof(s));
-	return (&s);
 }
 
 /*

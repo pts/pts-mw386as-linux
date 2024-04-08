@@ -16,7 +16,7 @@ unsigned short hash();
 /* symbol handlers */
 void symInit(void);		/* init symbol tables */
 unsigned short symGlob(); /* if -g mark new symbols global */
-void symDump();		/* dump string table if coff output */
+void symDump(void (*output)(sym *sp), long limit);	/* dump string table if coff output */
 sym *symLookUp();	/* look up a symbol and maybe create one */
 short  opLookUp();	/* look up an opcode on the symbol table */
 void  opDelete();	/* remove an entry form the opcode table */

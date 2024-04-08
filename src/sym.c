@@ -133,10 +133,7 @@ symGlob(int number)
 /*
  * Dump symbol data
  */
-void
-symDump(output, limit)
-int (*output)();
-long limit;
+void symDump(void (*output)(sym *sp), long limit)
 {
 	register sym *sp;
 	register int i;
