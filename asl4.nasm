@@ -284,7 +284,9 @@ bss_size equ 0xaac
 ; * DONE Fixed .bss and .data offsets in the COFF .o output (fixcoff.pl).
 ; * DONE Add linking this COFF output to an executable (link3coff.pl).
 ; * Add conversion from this COFF output to ELF-32 .o (relocatable), first without symbols.
-
+; * Port the 1992-09-11 version https://github.com/gspu/Coherent/blob/master/mwc/romana/relic/b/bin/as/RCS/as%2Cv to Linux i386.
+; * Compile the source code https://github.com/gspu/Coherent/tree/master/mwc/romana/relic/b/bin/as/RCS to Linux i386.
+;
 ; More gaps in the program which we could use for adding more Linux-specific assembly code.
 ;
 ; * 0x000074 0x34 bytes: header size difference
