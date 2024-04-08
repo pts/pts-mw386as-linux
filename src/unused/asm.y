@@ -1,10 +1,21 @@
 %{
-#include <asm.h>
+/* Manual changes have been made to y_tab.c generated from this file, thus
+ * it's not possible to autogenerate anymore.
+ */
+#include <stdlib.h>
+#include <string.h>
+
+#include "asm.h"
+
+#define write(a, b, c) fputs(b, stderr)  /* Just for printing the stack overflow error. */
+
+void regerror(psym *rg);
+
 /*
  * count macro parms.
  */
 static 
-parmCt()
+int parmCt(void)
 {
 	if(NULL == trueMac) {
 		yyerror(".parmct not in macro");
@@ -72,6 +83,7 @@ sym *symRef;
 			lflags |= A_SHORT;
 			if (!scale)
 				break;
+			/* fallthrough */
 		case 1:
 			regerror(r1);
 			break;
@@ -154,8 +166,7 @@ long regno;
 /*
  * Report register error.
  */
-regerror(rg)
-psym *rg;
+void regerror(psym *rg)
 {
 	yyerror("%s is an improper register in this context", rg->name); /**/
 }
@@ -212,7 +223,7 @@ long from, len;
  * String search.
  */
 static
-stringSearch(s1, s2)
+int stringSearch(s1, s2)
 char *s1, *s2;
 {
 	char *p;
@@ -228,7 +239,7 @@ char *s1, *s2;
  * 1 2  5  6  3  4  t
  */
 static
-compare(t, v)
+int compare(t, v)
 int t;
 long v;
 {
@@ -241,7 +252,7 @@ long v;
  * 1 2  5  6  3  4  t
  */
 static
-fcompare(t, v)
+int fcompare(t, v)
 int t;
 double v;
 {
@@ -249,7 +260,7 @@ double v;
 }
 
 static void
-unmatched(c)
+unmatched(int c)
 {
 	yyerror("Unmatched '%c'", c);
 	/* A delimeter, [, (, ), or ] is unmatched in this command. */
@@ -442,12 +453,12 @@ escoper : oper {
 	| REG COLON oper {
 		$$ = $3;
 		if ($1->flag != SEG_REG)
-			regerror($1);
+			regerror((psym*)$1);
 		$$->sg = $1->loc; };
 
 /* operands are one of these */
 oper : REG {
-		$$ = qbild(0L, T_R, $1, NULL, 0L, NULL); }
+		$$ = qbild(0L, T_R, (psym*)$1, NULL, 0L, NULL); }
 
      | FSTACK {
      		$$ = fbild(0L);	}
@@ -456,49 +467,49 @@ oper : REG {
      		$$ = fbild($3); }
 
      | LBRACK REG RBRACK {
-		$$ = qbild(0L, T_RI, $2, NULL, 0L, NULL); }
+		$$ = qbild(0L, T_RI, (psym*)$2, NULL, 0L, NULL); }
 
      | LBRACK REG COMMA numexp RBRACK {
-		$$ = qbild(0L, T_RIS, $2, NULL, $4, NULL); }
+		$$ = qbild(0L, T_RIS, (psym*)$2, NULL, $4, NULL); }
 
      | LBRACK COMMA REG COMMA numexp RBRACK {
-		$$ = qbild(0L, T_RIS, $3, NULL, $5, NULL); }
+		$$ = qbild(0L, T_RIS, (psym*)$3, NULL, $5, NULL); }
 
      | LBRACK REG COMMA REG RBRACK {
-     		$$ = qbild(0L, T_RIX, $2, $4, 0L, NULL); }
+     		$$ = qbild(0L, T_RIX, (psym*)$2, (psym*)$4, 0L, NULL); }
 
      | LBRACK REG COMMA REG COMMA numexp RBRACK {
-     		$$ = qbild(0L, T_RIXS, $2, $4, $6, NULL); }
+     		$$ = qbild(0L, T_RIXS, (psym*)$2, (psym*)$4, $6, NULL); }
 
      | numexp LBRACK REG RBRACK {
-		$$ = qbild($1, T_RID, $3, NULL, 0L, NULL); }
+		$$ = qbild($1, T_RID, (psym*)$3, NULL, 0L, NULL); }
 
      | numexp LBRACK REG COMMA numexp RBRACK {
-		$$ = qbild($1, T_RIDS, $3, NULL, $5, NULL); }
+		$$ = qbild($1, T_RIDS, (psym*)$3, NULL, $5, NULL); }
 
      | numexp LBRACK COMMA REG COMMA numexp RBRACK {
-		$$ = qbild($1, T_RIDS, $4, NULL, $6, NULL); }
+		$$ = qbild($1, T_RIDS, (psym*)$4, NULL, $6, NULL); }
 
      | numexp LBRACK REG COMMA REG RBRACK {
-     		$$ = qbild($1, T_RIXD, $3, $5, 0L, NULL); }
+     		$$ = qbild($1, T_RIXD, (psym*)$3, (psym*)$5, 0L, NULL); }
 
      | numexp LBRACK REG COMMA REG COMMA numexp RBRACK {
-     		$$ = qbild($1, T_RIXDS, $3, $5, $7, NULL); }
+     		$$ = qbild($1, T_RIXDS, (psym*)$3, (psym*)$5, $7, NULL); }
 
      | addexp LBRACK REG RBRACK {
-		$$ = qbild($1->loc, T_RID, $3, NULL, 0L, $1); }
+		$$ = qbild($1->loc, T_RID, (psym*)$3, NULL, 0L, $1); }
 
      | addexp LBRACK REG COMMA numexp RBRACK {
-		$$ = qbild($1->loc, T_RIDS, $3, NULL, $5, $1); }
+		$$ = qbild($1->loc, T_RIDS, (psym*)$3, NULL, $5, $1); }
 
      | addexp LBRACK COMMA REG COMMA numexp RBRACK {
-		$$ = qbild($1->loc, T_RIDS, $4, NULL, $6, $1); }
+		$$ = qbild($1->loc, T_RIDS, (psym*)$4, NULL, $6, $1); }
 
      | addexp LBRACK REG COMMA REG RBRACK {
-     		$$ = qbild($1->loc, T_RIXD, $3, $5, 0L, $1); }
+     		$$ = qbild($1->loc, T_RIXD, (psym*)$3, (psym*)$5, 0L, $1); }
 
      | addexp LBRACK REG COMMA REG COMMA numexp RBRACK {
-     		$$ = qbild($1->loc, T_RIXDS, $3, $5, $7, $1); }
+     		$$ = qbild($1->loc, T_RIXDS, (psym*)$3, (psym*)$5, $7, $1); }
 
      | addexp {
      		$$ = qbild($1->loc, T_D, NULL, NULL, 0L, $1); }
@@ -584,7 +595,7 @@ numexp	: NUMBER {
 		$$ = ~$2; }
 
 	| string LBRACK numexp RBRACK {
-		$$ = ($3 > strlen($1)) ? 0 : $1[(short)$3]; }
+		$$ = ((size_t)$3 > strlen($1)) ? 0 : $1[(short)$3]; }
 	| string AT string {
 		$$ = stringSearch($1, $3); }
 	| TONUMBER string {

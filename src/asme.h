@@ -122,22 +122,11 @@ void sTitle(void);
 void segInit(void);
 int macDelete(char *s, short t);
 void kindErr(unsigned short kind);
-
-/* from libs */
-#if 0
-char *memset();
-char *strcpy();
-char *strstr();
-char *strchr();
-char *strrchr();
-char *memcpy();
-char *ctime();
-char *realloc();
-long atol();
-long time();
-void free();
-void exit();
-#endif
+int buildind(parm *label, opc *op, expr *oper);
+void docmd(parm *label, opc *op, parm *p);
+void ecmd(parm *label, opc *op, parm *p, data *item);
+void ncmd(parm *label, opc *op, data *item);
+void dcmd(parm *label, opc *op, data *oper);
 
 /* tables from symtab.c */
 extern symt typTab[];

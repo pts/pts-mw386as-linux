@@ -1,12 +1,19 @@
+/*#line 1 "asm.y"*/
+#include <stdlib.h>
+#include <string.h>
 
-#line 1 "asm.y"
+#include "asm.h"
 
-#include <asm.h>
+#define write(a, b, c) fputs(b, stderr)  /* Just for printing the stack overflow error. */
+
+void regerror(psym *rg);
+int yylex(void);
+
 /*
  * count macro parms.
  */
 static 
-parmCt()
+int parmCt(void)
 {
 	if(NULL == trueMac) {
 		yyerror(".parmct not in macro");
@@ -74,6 +81,7 @@ sym *symRef;
 			lflags |= A_SHORT;
 			if (!scale)
 				break;
+			/* fallthrough */
 		case 1:
 			regerror(r1);
 			break;
@@ -156,8 +164,7 @@ long regno;
 /*
  * Report register error.
  */
-regerror(rg)
-psym *rg;
+void regerror(psym *rg)
 {
 	yyerror("%s is an improper register in this context", rg->name); /**/
 }
@@ -214,7 +221,7 @@ long from, len;
  * String search.
  */
 static
-stringSearch(s1, s2)
+int stringSearch(s1, s2)
 char *s1, *s2;
 {
 	char *p;
@@ -230,7 +237,7 @@ char *s1, *s2;
  * 1 2  5  6  3  4  t
  */
 static
-compare(t, v)
+int compare(t, v)
 int t;
 long v;
 {
@@ -243,7 +250,7 @@ long v;
  * 1 2  5  6  3  4  t
  */
 static
-fcompare(t, v)
+int fcompare(t, v)
 int t;
 double v;
 {
@@ -251,7 +258,7 @@ double v;
 }
 
 static void
-unmatched(c)
+unmatched(int c)
 {
 	yyerror("Unmatched '%c'", c);
 	/* A delimeter, [, (, ), or ] is unmatched in this command. */
@@ -649,7 +656,7 @@ int yydebug = 1;	/* No sir, not in the BSS */
 short yyerrflag;
 int *yys;
 
-yyparse()
+int yyparse(void)
 {
 	register YYSTYPE *yypvt;
 	int act;
@@ -657,16 +664,19 @@ yyparse()
 	int pno;
 	yystate = 0;
 	yychar = YYNOCHAR;
-	yyv = &yyvstack[-1];
-	yys = &yystack[-1];
+	yyv = yyvstack;
+	yys = yystack;
+	goto start;
 
 stack:
 	if( ++yys >= &yystack[YYMAXDEPTH] ) {
 		write(2, "Stack overflow\n", 15);
 		exit(1);
 	}
+	++yyv;
+start:
 	*yys = yystate;
-	*++yyv = yyval;
+	*yyv = yyval;
 #ifdef YYDEBUG
 	if( yydebug )
 		fprintf(stdout, "Stack state %d, char %d\n", yystate, yychar);
@@ -674,7 +684,7 @@ stack:
 
 read:
 	ip = &yyact[yypa[yystate]];
-	if( ip[1] != YYNOCHAR ) {
+	if( ip[1] != (unsigned)YYNOCHAR ) {
 		if( yychar == YYNOCHAR ) {
 			yychar = yylex();
 #ifdef YYDEBUG
@@ -682,8 +692,8 @@ read:
 				fprintf(stdout, "lex read char %d, val %d\n", yychar, yylval);
 #endif
 		}
-		while (ip[1]!=YYNOCHAR) {
-			if (ip[1]==yychar)
+		while (ip[1]!=(unsigned)YYNOCHAR) {
+			if (ip[1]==(unsigned)yychar)
 				break;
 			ip += 2;
 		}
@@ -691,7 +701,7 @@ read:
 	act = ip[0];
 	switch( act>>YYACTSH ) {
 	case YYSHIFTACT:
-		if( ip[1]==YYNOCHAR )
+		if( ip[1]==(unsigned)YYNOCHAR )
 			goto YYerract;
 		if( yychar != -1 )
 			yychar = YYNOCHAR; /* dont throw away EOF */
@@ -717,6 +727,7 @@ read:
 		switch (yyerrflag) {
 		case 0:
 			yyerror("Syntax error");
+			/* fallthrough */
 
 		case 1:
 		case 2:
@@ -724,7 +735,7 @@ read:
 			yyerrflag = 3;
 			while( yys >= & yystack[0] ) {
 				ip = &yyact[yypa[*yys]];
-				while( ip[1]!=YYNOCHAR )
+				while( ip[1]!=(unsigned)YYNOCHAR )
 					ip += 2;
 				if( (*ip&~YYAMASK) == (YYSHIFTACT<<YYACTSH) ) {
 					yystate = *ip&YYAMASK;
@@ -768,74 +779,62 @@ read:
 
 case 3: {
 
-#line 352 "asm.y"
  /* assembler command with parms */
 		docmd(yypvt[-3].p, yypvt[-2].o, yypvt[-1].p); }break;
 
 case 4: {
 
-#line 354 "asm.y"
  /* a command with string parms */
 		docmd(yypvt[-3].p, yypvt[-2].o, yypvt[-1].p); }break;
 
 case 5: {
 
-#line 356 "asm.y"
  /* command with a name & an expr */
 		ecmd(yypvt[-5].p, yypvt[-4].o, yypvt[-3].p, yypvt[-1].d); }break;
 
 case 6: {
 
-#line 359 "asm.y"
 
 		ecmd(yypvt[-5].p, yypvt[-4].o, yypvt[-3].p, yypvt[-1].d); }break;
 
 case 7: {
 
-#line 361 "asm.y"
 
 		ecmd(yypvt[-2].p, yypvt[-1].o, NULL, NULL); }break;
 
 case 8: {
 
-#line 363 "asm.y"
 	/* assembler command takes no parms */
 		docmd(yypvt[-2].p, yypvt[-1].o, (parm *)NULL); }break;
 
 case 9: {
 
-#line 365 "asm.y"
  /* assembler command with data parm */
 		ncmd(yypvt[-3].p, yypvt[-2].o, yypvt[-1].d); }break;
 
 case 10: {
 
-#line 367 "asm.y"
  /* data list */
 		dcmd(yypvt[-3].p, yypvt[-2].o, yypvt[-1].d); }break;
 
 case 11: {
 
-#line 369 "asm.y"
 	/* opcode operands */
 		buildind(yypvt[-3].p, yypvt[-2].o, yypvt[-1].e); }break;
 
 case 12: {
 
-#line 371 "asm.y"
 	/* built by rep instr */
 		buildind(yypvt[-3].p, yypvt[-2].o, NULL);
 		buildind(NULL, yypvt[-1].o, NULL ); }break;
 
 case 13: {
 
-#line 374 "asm.y"
 	/* label alone on line */
 		buildlab(yypvt[-1].p); }break;
 
 case 14: {
 
-#line 376 "asm.y"
 	/* syntax error */
 		if (bcnt > 0)
 			unmatched('[');
@@ -849,579 +848,487 @@ case 14: {
 
 case 15: {
 
-#line 387 "asm.y"
 
 		yyval.d = yypvt[-2].d;
 		yyval.d->next = yypvt[0].d; }break;
 
 case 16: {
 
-#line 390 "asm.y"
 
 		yyval.d = yypvt[0].d; }break;
 
 case 17: {
 
-#line 392 "asm.y"
 
 		yyval.d = NULL; }break;
 
 case 18: {
 
-#line 395 "asm.y"
 
 		yyval.d = gitem('y');
 		yyval.d->d.y  = yypvt[0].s; }break;
 
 case 19: {
 
-#line 398 "asm.y"
 
 		yyval.d = gitem('d');
 		yyval.d->d.d = yypvt[0].dbl; }break;
 
 case 20: {
 
-#line 401 "asm.y"
 
 		yyval.d = gitem('l');
 		yyval.d->d.l = yypvt[0].val; }break;
 
 case 21: {
 
-#line 404 "asm.y"
 
 		yyval.d = gitem('s');
 		yyval.d->d.s = yypvt[0].t; }break;
 
 case 22: {
 
-#line 407 "asm.y"
 
 		yyval.d = yypvt[0].d;
 		yyval.d->count = yypvt[-2].val; }break;
 
 case 23: {
 
-#line 411 "asm.y"
 		/* start parm list */
 		yyval.p = yypvt[0].p; }break;
 
 case 24: {
 
-#line 413 "asm.y"
 	/* chain parm list */
 		yyval.p = yypvt[-2].p;
 		yyval.p->next = yypvt[0].p; }break;
 
 case 25: {
 
-#line 416 "asm.y"
 
 		yyval.p = NULL; }break;
 
 case 26: {
 
-#line 419 "asm.y"
 		/* start a parm */
 		yyval.p = (parm *)gcpy(yypvt[0].t, offset(parm, str)); }break;
 
 case 27: {
 
-#line 422 "asm.y"
  
 		yyval.p = NULL; }break;
 
 case 28: {
 
-#line 424 "asm.y"
 
 		yyval.p = (parm *)gcpy(yypvt[0].t, offset(parm, str)); }break;
 
 case 29: {
 
-#line 428 "asm.y"
 
 		yyval.e = yypvt[-2].e;
 		yyval.e->next = yypvt[0].e; }break;
 
 case 30: {
 
-#line 431 "asm.y"
 
 		yyval.e = yypvt[0].e; }break;
 
 case 31: {
 
-#line 433 "asm.y"
 
 		lflags |= A_INDIR;
 		yyval.e = yypvt[0].e; }break;
 
 case 32: {
 
-#line 436 "asm.y"
 
 		yyval.e = NULL; }break;
 
 case 33: {
 
-#line 439 "asm.y"
 
 	yyval.e->sg = -1;
 	yyval.e = yypvt[0].e; }break;
 
 case 34: {
 
-#line 442 "asm.y"
 
 		yyval.e = yypvt[0].e;
 		if (yypvt[-2].s->flag != SEG_REG)
-			regerror(yypvt[-2].s);
+			regerror((psym*)yypvt[-2].s);
 		yyval.e->sg = yypvt[-2].s->loc; }break;
 
 case 35: {
 
-#line 449 "asm.y"
 
-		yyval.e = qbild(0L, T_R, yypvt[0].s, NULL, 0L, NULL); }break;
+		yyval.e = qbild(0L, T_R, (psym*)yypvt[0].s, NULL, 0L, NULL); }break;
 
 case 36: {
 
-#line 452 "asm.y"
 
      		yyval.e = fbild(0L);	}break;
 
 case 37: {
 
-#line 455 "asm.y"
 
      		yyval.e = fbild(yypvt[-1].val); }break;
 
 case 38: {
 
-#line 458 "asm.y"
 
-		yyval.e = qbild(0L, T_RI, yypvt[-1].s, NULL, 0L, NULL); }break;
+		yyval.e = qbild(0L, T_RI, (psym*)yypvt[-1].s, NULL, 0L, NULL); }break;
 
 case 39: {
 
-#line 461 "asm.y"
 
-		yyval.e = qbild(0L, T_RIS, yypvt[-3].s, NULL, yypvt[-1].val, NULL); }break;
+		yyval.e = qbild(0L, T_RIS, (psym*)yypvt[-3].s, NULL, yypvt[-1].val, NULL); }break;
 
 case 40: {
 
-#line 464 "asm.y"
 
-		yyval.e = qbild(0L, T_RIS, yypvt[-3].s, NULL, yypvt[-1].val, NULL); }break;
+		yyval.e = qbild(0L, T_RIS, (psym*)yypvt[-3].s, NULL, yypvt[-1].val, NULL); }break;
 
 case 41: {
 
-#line 467 "asm.y"
 
-     		yyval.e = qbild(0L, T_RIX, yypvt[-3].s, yypvt[-1].s, 0L, NULL); }break;
+     		yyval.e = qbild(0L, T_RIX, (psym*)yypvt[-3].s, (psym*)yypvt[-1].s, 0L, NULL); }break;
 
 case 42: {
 
-#line 470 "asm.y"
 
-     		yyval.e = qbild(0L, T_RIXS, yypvt[-5].s, yypvt[-3].s, yypvt[-1].val, NULL); }break;
+     		yyval.e = qbild(0L, T_RIXS, (psym*)yypvt[-5].s, (psym*)yypvt[-3].s, yypvt[-1].val, NULL); }break;
 
 case 43: {
 
-#line 473 "asm.y"
 
-		yyval.e = qbild(yypvt[-3].val, T_RID, yypvt[-1].s, NULL, 0L, NULL); }break;
+		yyval.e = qbild(yypvt[-3].val, T_RID, (psym*)yypvt[-1].s, NULL, 0L, NULL); }break;
 
 case 44: {
 
-#line 476 "asm.y"
 
-		yyval.e = qbild(yypvt[-5].val, T_RIDS, yypvt[-3].s, NULL, yypvt[-1].val, NULL); }break;
+		yyval.e = qbild(yypvt[-5].val, T_RIDS, (psym*)yypvt[-3].s, NULL, yypvt[-1].val, NULL); }break;
 
 case 45: {
 
-#line 479 "asm.y"
 
-		yyval.e = qbild(yypvt[-6].val, T_RIDS, yypvt[-3].s, NULL, yypvt[-1].val, NULL); }break;
+		yyval.e = qbild(yypvt[-6].val, T_RIDS, (psym*)yypvt[-3].s, NULL, yypvt[-1].val, NULL); }break;
 
 case 46: {
 
-#line 482 "asm.y"
 
-     		yyval.e = qbild(yypvt[-5].val, T_RIXD, yypvt[-3].s, yypvt[-1].s, 0L, NULL); }break;
+     		yyval.e = qbild(yypvt[-5].val, T_RIXD, (psym*)yypvt[-3].s, (psym*)yypvt[-1].s, 0L, NULL); }break;
 
 case 47: {
 
-#line 485 "asm.y"
 
-     		yyval.e = qbild(yypvt[-7].val, T_RIXDS, yypvt[-5].s, yypvt[-3].s, yypvt[-1].val, NULL); }break;
+     		yyval.e = qbild(yypvt[-7].val, T_RIXDS, (psym*)yypvt[-5].s, (psym*)yypvt[-3].s, yypvt[-1].val, NULL); }break;
 
 case 48: {
 
-#line 488 "asm.y"
 
-		yyval.e = qbild(yypvt[-3].s->loc, T_RID, yypvt[-1].s, NULL, 0L, yypvt[-3].s); }break;
+		yyval.e = qbild(yypvt[-3].s->loc, T_RID, (psym*)yypvt[-1].s, NULL, 0L, yypvt[-3].s); }break;
 
 case 49: {
 
-#line 491 "asm.y"
 
-		yyval.e = qbild(yypvt[-5].s->loc, T_RIDS, yypvt[-3].s, NULL, yypvt[-1].val, yypvt[-5].s); }break;
+		yyval.e = qbild(yypvt[-5].s->loc, T_RIDS, (psym*)yypvt[-3].s, NULL, yypvt[-1].val, yypvt[-5].s); }break;
 
 case 50: {
 
-#line 494 "asm.y"
 
-		yyval.e = qbild(yypvt[-6].s->loc, T_RIDS, yypvt[-3].s, NULL, yypvt[-1].val, yypvt[-6].s); }break;
+		yyval.e = qbild(yypvt[-6].s->loc, T_RIDS, (psym*)yypvt[-3].s, NULL, yypvt[-1].val, yypvt[-6].s); }break;
 
 case 51: {
 
-#line 497 "asm.y"
 
-     		yyval.e = qbild(yypvt[-5].s->loc, T_RIXD, yypvt[-3].s, yypvt[-1].s, 0L, yypvt[-5].s); }break;
+     		yyval.e = qbild(yypvt[-5].s->loc, T_RIXD, (psym*)yypvt[-3].s, (psym*)yypvt[-1].s, 0L, yypvt[-5].s); }break;
 
 case 52: {
 
-#line 500 "asm.y"
 
-     		yyval.e = qbild(yypvt[-7].s->loc, T_RIXDS, yypvt[-5].s, yypvt[-3].s, yypvt[-1].val, yypvt[-7].s); }break;
+     		yyval.e = qbild(yypvt[-7].s->loc, T_RIXDS, (psym*)yypvt[-5].s, (psym*)yypvt[-3].s, yypvt[-1].val, yypvt[-7].s); }break;
 
 case 53: {
 
-#line 503 "asm.y"
 
      		yyval.e = qbild(yypvt[0].s->loc, T_D, NULL, NULL, 0L, yypvt[0].s); }break;
 
 case 54: {
 
-#line 506 "asm.y"
 
      		yyval.e = qbild(yypvt[0].val, T_D, NULL, NULL, 0L, NULL); }break;
 
 case 55: {
 
-#line 509 "asm.y"
 
 		yyval.e = setImm(yypvt[0].val, (sym *)NULL); }break;
 
 case 56: {
 
-#line 512 "asm.y"
 
 		yyval.e = setImm(yypvt[0].s->loc, yypvt[0].s); }break;
 
 case 57: {
 
-#line 518 "asm.y"
  yyval.s = yypvt[0].s; }break;
 
 case 58: {
 
-#line 519 "asm.y"
  yyval.s=yypvt[-1].s; }break;
 
 case 59: {
 
-#line 520 "asm.y"
  yyval.s = copySym(yypvt[-2].s); yyval.s->loc += yypvt[0].val; }break;
 
 case 60: {
 
-#line 521 "asm.y"
  yyval.s = copySym(yypvt[-2].s); yyval.s->loc -= yypvt[0].val; }break;
 
 case 61: {
 
-#line 522 "asm.y"
  yyval.s = copySym(yypvt[0].s); yyval.s->loc += yypvt[-2].val; }break;
 
 case 62: {
 
-#line 525 "asm.y"
 
 		yyval.val = yypvt[0].val; }break;
 
 case 63: {
 
-#line 527 "asm.y"
 
 		yyval.val = yypvt[-1].val; }break;
 
 case 64: {
 
-#line 529 "asm.y"
 
 		ckseg(yypvt[-2].s, yypvt[0].s); yyval.val = yypvt[-2].s->loc - yypvt[0].s->loc; }break;
 
 case 65: {
 
-#line 531 "asm.y"
 
 		ckseg(yypvt[-2].s, yypvt[0].s); yyval.val = compare((int)yypvt[-1].val, yypvt[-2].s->loc - yypvt[0].s->loc); }break;
 
 case 66: {
 
-#line 533 "asm.y"
 
 		yyval.val = compare((int)yypvt[-1].val, yypvt[-2].val - yypvt[0].val); }break;
 
 case 67: {
 
-#line 535 "asm.y"
 
 		yyval.val = compare((int)yypvt[-1].val, (long)strcmp(yypvt[-2].t, yypvt[0].t)); }break;
 
 case 68: {
 
-#line 537 "asm.y"
 
 		yyval.val = fcompare((int)yypvt[-1].val, yypvt[-2].dbl - yypvt[0].dbl); }break;
 
 case 69: {
 
-#line 540 "asm.y"
 
 		yyval.val = yypvt[0].s->size; }break;
 
 case 70: {
 
-#line 543 "asm.y"
 
 		yyval.val = yypvt[0].s->loc; }break;
 
 case 71: {
 
-#line 546 "asm.y"
 
 		yyval.val = yypvt[0].s->sg + 1; }break;
 
 case 72: {
 
-#line 549 "asm.y"
 
 		yyval.val = yypvt[0].s->statement && (statement >= yypvt[0].s->statement); }break;
 
 case 73: {
 
-#line 551 "asm.y"
 
 		yyval.val = 1; }break;
 
 case 74: {
 
-#line 553 "asm.y"
 
 		yyval.val = parmCt(); }break;
 
 case 75: {
 
-#line 556 "asm.y"
 
 		yyval.val = yypvt[-2].val + yypvt[0].val; }break;
 
 case 76: {
 
-#line 558 "asm.y"
 
 		yyval.val = yypvt[-2].val - yypvt[0].val; }break;
 
 case 77: {
 
-#line 560 "asm.y"
 
 		yyval.val = yypvt[-2].val * yypvt[0].val; }break;
 
 case 78: {
 
-#line 562 "asm.y"
 
 		yyval.val = yypvt[-2].val / yypvt[0].val; }break;
 
 case 79: {
 
-#line 564 "asm.y"
 
 		yyval.val = yypvt[-2].val % yypvt[0].val; }break;
 
 case 80: {
 
-#line 567 "asm.y"
 
 		yyval.val = yypvt[-2].val << yypvt[0].val; }break;
 
 case 81: {
 
-#line 569 "asm.y"
 
 		yyval.val = yypvt[-2].val >> yypvt[0].val; }break;
 
 case 82: {
 
-#line 573 "asm.y"
 
 		yyval.val = yypvt[-2].val & yypvt[0].val; }break;
 
 case 83: {
 
-#line 575 "asm.y"
 
 		yyval.val = yypvt[-2].val | yypvt[0].val; }break;
 
 case 84: {
 
-#line 577 "asm.y"
 
 		yyval.val = yypvt[-2].val ^ yypvt[0].val; }break;
 
 case 85: {
 
-#line 579 "asm.y"
 
 		yyval.val = - yypvt[0].val; }break;
 
 case 86: {
 
-#line 581 "asm.y"
 
 		yyval.val = !yypvt[0].val; }break;
 
 case 87: {
 
-#line 583 "asm.y"
 
 		yyval.val = ~yypvt[0].val; }break;
 
 case 88: {
 
-#line 586 "asm.y"
 
-		yyval.val = (yypvt[-1].val > strlen(yypvt[-3].t)) ? 0 : yypvt[-3].t[(short)yypvt[-1].val]; }break;
+		yyval.val = ((size_t)yypvt[-1].val > strlen(yypvt[-3].t)) ? 0 : yypvt[-3].t[(short)yypvt[-1].val]; }break;
 
 case 89: {
 
-#line 588 "asm.y"
 
 		yyval.val = stringSearch(yypvt[-2].t, yypvt[0].t); }break;
 
 case 90: {
 
-#line 590 "asm.y"
 
 		yyval.val = atol(yypvt[0].t); }break;
 
 case 91: {
 
-#line 592 "asm.y"
 
 		yyval.val = yypvt[0].dbl; }break;
 
 case 92: {
 
-#line 595 "asm.y"
 
 		yyval.t = gcpy(yypvt[0].t, 0); }break;
 
 case 93: {
 
-#line 597 "asm.y"
 
 		yyval.t = yypvt[-1].t; }break;
 
 case 94: {
 
-#line 599 "asm.y"
 
 		yyval.t = concat(yypvt[-2].t, yypvt[0].t); }break;
 
 case 95: {
 
-#line 601 "asm.y"
 
 		yyval.t = substr(yypvt[-5].t, yypvt[-3].val, yypvt[-1].val); }break;
 
 case 96: {
 
-#line 603 "asm.y"
 
 		yyval.t = substr(yypvt[-3].t, yypvt[-1].val, strlen(yypvt[-3].t) - yypvt[-1].val); }break;
 
 case 97: {
 
-#line 605 "asm.y"
 
 		yyval.t = galloc(12);
 		sprintf(yyval.t, "%ld", yypvt[0].val); }break;
 
 case 98: {
 
-#line 608 "asm.y"
 
 		yyval.t = galloc(20);
 		sprintf(yyval.t, "%g", yypvt[0].dbl); }break;
 
 case 99: {
 
-#line 613 "asm.y"
 
 		yyval.dbl = yypvt[0].dbl; }break;
 
 case 100: {
 
-#line 615 "asm.y"
 
 		yyval.dbl = yypvt[-1].dbl; }break;
 
 case 101: {
 
-#line 617 "asm.y"
 
 		yyval.dbl = yypvt[-2].dbl + yypvt[0].dbl; }break;
 
 case 102: {
 
-#line 619 "asm.y"
 
 		yyval.dbl = yypvt[-2].dbl - yypvt[0].dbl; }break;
 
 case 103: {
 
-#line 621 "asm.y"
 
 		yyval.dbl = yypvt[-2].dbl * yypvt[0].dbl; }break;
 
 case 104: {
 
-#line 623 "asm.y"
 
 		yyval.dbl = yypvt[-2].dbl / yypvt[0].dbl; }break;
 
 case 105: {
 
-#line 625 "asm.y"
 
 		yyval.dbl = - yypvt[0].dbl; }break;
 
 case 106: {
 
-#line 627 "asm.y"
 
 		yyval.dbl = as_strtod(yypvt[0].t, (char **)NULL); }break;
 
 case 107: {
 
-#line 629 "asm.y"
 
 		yyval.dbl = yypvt[0].val; }break;
 
 		}
 		ip = &yygo[ yypgo[yypdnt[pno]] ];
-		while( *ip!=*yys && *ip!=YYNOCHAR )
+		while( *ip!=(unsigned)*yys && *ip!=(unsigned)YYNOCHAR )
 			ip += 2;
 		yystate = ip[1];
 		goto stack;
 	}
+	return 0;  /* Usually not reached. */
 }
 
 
