@@ -1013,7 +1013,7 @@ void outData(void)
 
 	fprintf(ofp, "psym symtab[] = {\n");
 	fprintf(ofp,	/* too fancy for the basic mechinism */
-		"\t{NULL, IDENTIFIER, 0, 0, 1, 0, symtab, 0, 0, \".\" },\n");
+		"\t{NULL, IDENTIFIER, 0, 0, 1, 0, (sym*)symtab, 0, 0, \".\" },\n");
 	for (i = 0; i < regct; ) {
 		r = regtab + i++;
 

@@ -1973,7 +1973,7 @@ nhash hashCodes[] = {
 };
 
 psym symtab[] = {
-	{NULL, IDENTIFIER, 0, 0, 1, 0, symtab, 0, 0, "." },
+	{NULL, IDENTIFIER, 0, 0, 1, 0, (sym*)symtab, 0, 0, "." },
 	{ NULL,        REG, 0, 1, 0, 0, NULL, 0, 0, "%al" },
 	{ NULL,        REG, 0, 2, 0, 0, NULL, 0, 0, "%ax" },
 	{ NULL,        REG, 0, 4, 0, 0, NULL, 0, 0, "%eax" },
