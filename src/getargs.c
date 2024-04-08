@@ -22,11 +22,7 @@ int	optix = 1;	/* Global argv index. Reset to 1 to rescan. */
 static char	*scan = NULL;	/* Private scan pointer. */
 extern char	*strchr();
 
-int
-getargs(argc, argv, optstring)
-int argc;
-char *argv[];
-char *optstring;
+int getargs(int argc, char * const argv[], const char *optstring)
 {
 	register char c, a;
 	register char *place;

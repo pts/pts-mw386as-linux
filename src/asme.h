@@ -8,7 +8,7 @@ void dodefs();		/* process -D and -E options at each pass */
 /* getargs */
 extern int optix;	/* reset to 1 to reporcess */
 extern char *optarg;	/* Global argument pointer */
-extern int getargs();	/* fancy get arguments */
+int getargs(int argc, char * const argv[], const char *optstring);	/* fancy get arguments, like getopt(3) */
 
 /* hash */
 unsigned short hash();
@@ -40,7 +40,6 @@ void yyerror(const char *fmt, ...);			/* display error msg */
 void fatal(const char *fmt, ...);			/* put a msg and die */
 void yywarn(const char *fmt, ...);
 char *alloc(unsigned n);
-int getargs(int argc, char *argv[], char *optstring);
 char *trim();			/* trim trailing spaces and tabs */
 short  countList();		/* count things with next or prev ptrs */
 void freeLevel();		/* pop a logic level */
