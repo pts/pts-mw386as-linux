@@ -1,7 +1,7 @@
 /*
  * 80386 assembler common data
  */
-#include <asm.h>
+#include "asm.h"
 
 #ifdef GEM
 long _stksize = 4096;
