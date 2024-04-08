@@ -5,7 +5,9 @@
  * at the end of line. This can be avoided by umark()
  */
 #include <stdio.h>
-#include <asm.h>
+#include <stdlib.h>
+#include <string.h>
+#include "asm.h"
 
 static char **mArray;		/* all items galloc()ed for this line */
 static unsigned top = 0;	/* highest item galloc()ed this line */
@@ -32,7 +34,6 @@ alloc(n)
 unsigned n;
 {
 	register char *p;
-	extern char *calloc();
 
 	if ((p = (char *)calloc(n, 1)) == NULL)
 		fatal("Out of space");
@@ -52,7 +53,6 @@ unsigned n;
 void
 initStor()
 {
-	extern char *malloc();
 
 #if 0
 	char *j;
@@ -70,7 +70,7 @@ initStor()
 /*
  * Expand an area.
  */
-expand(area, current, by, size)
+void expand(area, current, by, size)
 char **area;
 unsigned *current, by, size;
 {
@@ -188,7 +188,7 @@ sym *s;
  * Get space for data item.
  */
 data *
-gitem(type)
+gitem(int type)
 {
 	register data *d;
 
