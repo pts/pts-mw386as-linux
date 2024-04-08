@@ -5,9 +5,7 @@
 
 void fatal(const char *fmt, ...);
 
-FILE *
-xopen(fn, acs)
-char *fn, *acs;
+FILE *xopen(const char *fn, const char *acs)
 {
 	FILE *tmp;
 
