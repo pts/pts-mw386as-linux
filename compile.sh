@@ -112,4 +112,8 @@ if test $# != 0; then  # Run some more tests. GNU Binutils is needed.
   test "$(./hellol)" = "Hello, World!"
 fi
 
+tools/rm -f mw386as
+tools/cp -a asl5 mw386as
+tools/ls -ld mw386as
+
 : "$0" OK.
