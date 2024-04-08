@@ -14,6 +14,8 @@
  */
 #include <stdio.h>
 
+void fatal(const char *fmt, ...);
+
 char	*optarg;	/* Global argument pointer. */
 int	optix = 1;	/* Global argv index. Reset to 1 to rescan. */
 
