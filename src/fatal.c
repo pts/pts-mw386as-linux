@@ -1,10 +1,16 @@
 /*
  * Put message and die.
  */
+#include <stdarg.h>
 #include <stdio.h>
-fatal(s)
-char *s;
+#include <stdlib.h>
+
+void fatal(const char *fmt, ...)
 {
-	fprintf(stderr, "\nfatal: %r\n", &s);
+	va_list ap;
+	fputs("\nfatal: ", stderr);
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	fputs("\n", stderr);
 	exit(1);
 }
