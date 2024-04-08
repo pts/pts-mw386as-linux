@@ -275,7 +275,7 @@ extern short yyerrflag;
 #endif
 YYSTYPE yyval, yylval;
 #ifdef YYTNAMES
-struct yytname yytnames[50] =
+const struct yytname yytnames[50] =
 {
 	"$end", -1, 
 	"error", -2, 
@@ -341,7 +341,7 @@ struct yytname yytnames[50] =
 #define	YYERRVAL	(-2)
 #define	YYOTHERS	(-1000)
 
-unsigned char yypdnt[108] = {
+const unsigned char yypdnt[108] = {
 0, 1, 1, 2, 2, 2, 2, 2,
 2, 2, 2, 2, 2, 2, 2, 7,
 7, 7, 6, 6, 6, 6, 6, 4,
@@ -357,7 +357,7 @@ unsigned char yypdnt[108] = {
 12, 12, 12, 10, 10, 10, 10, 10,
 10, 10, 10, 10 
 };
-unsigned char yypn[108] = {
+const unsigned char yypn[108] = {
 2, 1, 2, 4, 4, 6, 6, 3,
 3, 4, 4, 4, 4, 2, 2, 3,
 1, 0, 1, 1, 1, 1, 3, 1,
@@ -373,11 +373,11 @@ unsigned char yypn[108] = {
 4, 2, 2, 1, 3, 3, 3, 3,
 3, 2, 2, 2 
 };
-unsigned char yypgo[15] = {
+const unsigned char yypgo[15] = {
 0, 0, 2, 6, 8, 14, 20, 28,
 34, 38, 76, 114, 198, 228, 232 
 };
-unsigned int yygo[236] = {
+const unsigned int yygo[236] = {
 YYOTHERS, 0x3, 0x3, 0x8, YYOTHERS, 0x4, YYOTHERS, 0x5,
 0xc, 0x38, 0x7d, 0xb2, YYOTHERS, 0x36, 0xf, 0x3c,
 0x10, 0x3d, YYOTHERS, 0x37, 0xd, 0x39, 0x7b, 0xb1,
@@ -409,7 +409,7 @@ YYOTHERS, 0x2a, 0x9, 0x2b, 0x18, 0x43, 0x19, 0x43,
 0xa9, 0x8e, YYOTHERS, 0x2c, 0x1c, 0x49, YYOTHERS, 0x2d,
 0x3f, 0x83, YYOTHERS, 0x2e 
 };
-unsigned short yypa[225] = {
+const unsigned short yypa[225] = {
 0, 22, 26, 28, 52, 54, 74, 76,
 80, 82, 128, 162, 162, 166, 200, 204,
 210, 214, 216, 218, 220, 224, 226, 230,
@@ -440,7 +440,7 @@ unsigned short yypa[225] = {
 1480, 1506, 1508, 1510, 1536, 1538, 1564, 1566,
 1568 
 };
-unsigned int yyact[1570] = {
+const unsigned int yyact[1570] = {
 0x2, 0x147, 0x201b, 0x104, 0x201b, 0x105, 0x201b, 0x106,
 0x201b, 0x107, 0x201b, 0x108, 0x201b, 0x109, 0x201b, 0x10a,
 0x201b, 0x10b, 0x201b, 0x14d, 0x1, YYOTHERS, 0x6, 0x14d,
@@ -660,7 +660,8 @@ int yyparse(void)
 {
 	register YYSTYPE *yypvt;
 	int act;
-	register unsigned *ip, yystate;
+	register const unsigned *ip;
+	register unsigned yystate;
 	int pno;
 	yystate = 0;
 	yychar = YYNOCHAR;
