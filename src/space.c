@@ -86,7 +86,7 @@ galloc(size)
 unsigned size;
 {
 	if(top == max)
-		expand(&mArray, &max, 10, sizeof(*mArray));
+		expand(mArray, &max, 10, sizeof(*mArray));
 
 	return (mArray[top++] = alloc(size));
 }
