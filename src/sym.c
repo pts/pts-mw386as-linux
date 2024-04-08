@@ -1,9 +1,13 @@
 /*
  * Symbol table functions.
  */
-#include <asm.h>
-#include <symtab.h>
-#include <y_tab.h>
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "asm.h"
+#include "symtab.h"
+#include "y_tab.h"
 
 #define SHASH	((unsigned short)1021)	/* symbol table hash */
 sym 	**symhash;			/* macros equs and symbols */
@@ -25,7 +29,7 @@ symInit()
 	for(sp = symtab;  sp < symtab  + SYMCOUNT; sp++) {
 		if (rswitch && ('%' == sp->name[0]) && sp->name[1])
 			sp->name++;
-		sp->next = symhash[ht = hash(sp->name) % SHASH];
+		sp->next = (psym*)symhash[ht = hash(sp->name) % SHASH];
 		symhash[ht] = (sym *)sp;
 	}
 
@@ -35,7 +39,7 @@ symInit()
 /*
  * Free macro space.
  */
-freeMac(mp)
+void freeMac(mp)
 register macro *mp;
 {
 	freeList((parm *)mp->first);	/* free lines */
@@ -47,7 +51,7 @@ register macro *mp;
  * Returns a 1 if this symbol should not be output
  * to the symbol table.
  */
-static
+static int
 notSym(sp)
 register sym *sp;
 {
@@ -91,7 +95,7 @@ register sym *sp;
  * Called at the end of pass 0 and 1.
  */
 unsigned short
-symGlob(number)
+symGlob(int number)
 {
 	register sym *sp, **psp;
 	register unsigned short i;
@@ -101,7 +105,7 @@ symGlob(number)
 			switch(sp->type) {
 			case MACTYPE: /* delete macro */
 			case MACSTR:  /* delete define */
-				*psp = sp->next;	/* rechain list */
+				*psp = (sym*)sp->next;	/* rechain list */
 				freeMac((macro *)sp);
 				continue;
 
@@ -119,7 +123,7 @@ symGlob(number)
 				if((2 == pass) && !notSym(sp))
 					sp->num = number++;
 			}
-			psp = &(sp->next);	/* follow list */
+			psp = (sym**)&(sp->next);	/* follow list */
 		}
 	}
 	lastSym = "";
@@ -135,10 +139,10 @@ int (*output)();
 long limit;
 {
 	register sym *sp;
-	register i;
+	register int i;
 
 	for(i = 0; i < SHASH; i++)
-		for(sp = symhash[i]; NULL != sp; sp = sp->next) {
+		for(sp = symhash[i]; NULL != sp; sp = (sym*)sp->next) {
 			if(sp->num > limit) {
 				switch(sp->type) {
 				case NUMBER:
@@ -156,7 +160,7 @@ long limit;
  * This means debug data can seriously screw up an output file
  * if it is wrong.
  */
-symReNumber(id, number)
+void symReNumber(id, number)
 char *id;
 int number;
 {
@@ -165,7 +169,7 @@ int number;
 
 	for(sp = symhash[i = hash(id) % SHASH];
 	    sp != NULL;
-	    sp = sp->next) {
+	    sp = (sym*)sp->next) {
 		if(!strcmp(id, SYMNAME(sp))) {
 			sp->num = number;
 			break;
@@ -231,9 +235,7 @@ register char *id;
  * If it is not found build it.
  */
 sym *
-symLookUp(id, flag, loc, sg)
-long loc;
-char *id;
+symLookUp(char *id, int flag, long loc, int sg)
 {
 	register sym *sp;
 	char *locSym;
@@ -249,7 +251,7 @@ char *id;
 
 	for(sp = symhash[i = hash(id) % SHASH];
 	    sp != NULL;
-	    sp = sp->next) {
+	    sp = (sym*)sp->next) {
 		if((sp->type > MACSCAN) && !strcmp(id, SYMNAME(sp))) {
 			if(2 == pass) {
 				switch(flag) {
@@ -349,10 +351,10 @@ char *id;
 				NULL, 0, 0, NULL
 			};
 
-			return (&sy);
+			return (sym*)(&sy);
 		}
 		sp = (sym *) scpy(id, offset(sym, name));
-		sp->next = symhash[i];
+		sp->next = (psym*)symhash[i];
 		sp->ref = symhash[i] = sp;
 		sp->flag = flag;
 	}
@@ -424,8 +426,7 @@ char *id;
  * Look up macros and equs symbols. Shares table with symbols.
  */
 macro *
-macLookUp(id, type)
-char *id;
+macLookUp(char *id, int type)
 {
 	register macro *mp;
 
@@ -440,7 +441,7 @@ char *id;
 /*
  * Delete a macro or equs.
  */
-macDelete(s, t)
+int macDelete(s, t)
 char *s;
 short t;
 {
