@@ -35,11 +35,10 @@ void section();
 FILE *xopen();			/* open a file or die in the attempt */
 char *scpy();			/* make a new copy of a string */
 char *gcpy();			/* copy into tmp space */
-void yyerror();			/* display error msg */
-void fatal();			/* put a msg and die */
+void yyerror(const char *fmt, ...);			/* display error msg */
+void fatal(const char *fmt, ...);			/* put a msg and die */
 char *trim();			/* trim trailing spaces and tabs */
 short  countList();		/* count things with next or prev ptrs */
-char *memset();
 void freeLevel();		/* pop a logic level */
 void newLevel();		/* push a logic level */
 char *parmFind();		/* infd a parm by number */
@@ -111,7 +110,13 @@ extern char xpass;	/* set if a branch changes size */
 extern long showSym;
 extern FILE *errdev;	/* Where to put out errors */
 
+double as_strtod(const char *nptr, char **endptr);
+
+void sTitle(void);
+
 /* from libs */
+#if 0
+char *memset();
 char *strcpy();
 char *strstr();
 char *strchr();
@@ -121,9 +126,9 @@ char *ctime();
 char *realloc();
 long atol();
 long time();
-double as_strtod(const char *nptr; char **endptr);
 void free();
 void exit();
+#endif
 
 /* tables from symtab.c */
 extern symt typTab[];

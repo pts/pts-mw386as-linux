@@ -1,8 +1,14 @@
 /*
  * MWC K&R C version of error message functions.
  */
-#include <asm.h>
+
 #include <errno.h>
+#include <stdarg.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "asm.h"
 
 /*
  * Show line numbers if no listing.
@@ -18,17 +24,17 @@ showLine()
  * Print error msg and die.
  */
 /*VARARGS1*/
-void
-fatal(s)
-char *s;
-{
+void fatal(const char *fmt, ...) {
+	va_list ap;
 	int save = errno;
 
 	if (Qswitch)
 		exit(1);
 
 	showLine();
-	fprintf(errdev, "%r\n", &s);
+	va_start(ap, fmt);
+	vfprintf(errdev, fmt, ap);
+	fputs("\n", errdev);
 
 	if (0 != (errno = save))
 		perror("errno reports");
@@ -40,10 +46,8 @@ char *s;
  * Print error msg to listing.
  */
 /*VARARGS1*/
-void
-yyerror(s)
-char *s;
-{
+void yyerror(const char *fmt, ...) {
+	va_list ap;
 	if (2 != pass)
 		return;
 	errCt++;
@@ -53,21 +57,25 @@ char *s;
 		return;
 
 	showLine();
-	fprintf(errdev, "%r\n", &s);
+	va_start(ap, fmt);
+	vfprintf(errdev, fmt, ap);
+	fputs("\n", errdev);
 }
 
 /*
  * Print warning msg to listing.
  */
 /*VARARGS1*/
-void
-yywarn(s)
-char *s;
+void yywarn(const char *fmt, ...)
 {
+	va_list ap;
 	if ((2 != pass) || wswitch || Qswitch)
 		return;
 	sTitle();
 
 	showLine();
-	fprintf(errdev, "Warning %r\n", &s);
+	fputs("Warning ", errdev);
+	va_start(ap, fmt);
+	vfprintf(errdev, fmt, ap);
+	fputs("\n", errdev);
 }
