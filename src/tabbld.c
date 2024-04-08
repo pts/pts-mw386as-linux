@@ -15,7 +15,7 @@ char *newcpy(register char *s);
 long randl(void);
 char *alloc(unsigned n);
 extern char *optarg;
-int getopt(int argc, char * const argv[], const char *optstring);
+int getargs(int argc, char * const argv[], const char *optstring);  /* getopt(3) would also work, but that's not C89. */
 unsigned short hash(register char *p);
 FILE *xopen(const char *fn, const char *acs);
 char *getline(FILE *ifp, int *lineno);
@@ -1068,7 +1068,7 @@ int main(int argc, char *argv[])
 {
 	int c, subtest;
 
-	for (subtest = 0; EOF != (c = getopt(argc, argv, "bdelst:n:?"));) {
+	for (subtest = 0; EOF != (c = getargs(argc, argv, "bdelst:n:?"));) {
 		switch (c) {
 		case 'b':
 			bswitch = 1;
