@@ -10,7 +10,7 @@
  */
 #include "utype.h"
 
-unsigned char _utype[_CTYPEN] = {
+const unsigned char _utype[_CTYPEN] = {
 	0,				/* EOF				*/
 	_C,	_C,	_C,	_C,	/* NUL	SOH	STX	ETX	*/
 	_C,	_C,	_C,	_C,	/* EOT	ENQ	ACK	BEL	*/
