@@ -1,10 +1,10 @@
 /*
  * 80386 Assembler Build output code.
  */
-#include <asm.h>
-#include <asflags.h>
-#include <y_tab.h>
-#include <symtab.h>
+#include "asm.h"
+#include "asflags.h"
+#include "y_tab.h"
+#include "symtab.h"
 
 static symt *st;
 static struct expr *opList[3];
@@ -33,12 +33,24 @@ static unsigned long uflags;
 #define U_DSP    0x1000	/* 16 or 32 bit displacment with mod/rm */
 #define U_CTL	 0x2000 /* control register */
 
+void outab(unsigned short b);
+void outaw(unsigned short u);
+void outal(long ul);
+void outrb(expr *oper, int sw);
+void outrw(expr *oper, int sw);
+void outrl(expr *oper, int sw);
+
+static int buildop(opc *op);
+static int checkop(register expr *this, unsigned short type);
+static void outrm16(void);
+static void outrm32(void);
+
 /*
  * Build indefinate opcode. On 80386 thats everything.
  * First try all instrs not in the wrong mode.
  * Then try the instrs in the wrong mode.
  */
-buildind(label, op, oper)
+int buildind(label, op, oper)
 parm *label;
 register opc *op;
 register expr *oper;
@@ -112,16 +124,13 @@ register expr *this;
  * Check if operator validly fits mode.
  * return 1 for false zero for true.
  */
-static
-checkop(this, type)
-register expr *this;
-unsigned short type;
+static int checkop(register expr *this, unsigned short type)
 {
 	register sym *r1;
 	long d;
-	int  regsz;
+	int  regsz = 0;  /* Pacify GCC about unininitialized variable. */
 
-	r1 = this->r1;
+	r1 = (sym*)this->r1;
 
 	switch (type) {
 	case m8:
@@ -401,6 +410,7 @@ unsigned short type;
 			case 4: /* ( %esp ) */
 				base = 4;	/* %sp */
 				index = 4;	/* no index */
+				/* fallthrough */
 			default: /* (eax | ecx | edx | ebx | esi | edi) */
 				mod = 0;
 			}
@@ -432,6 +442,7 @@ unsigned short type;
 				scale = this->scale;
 				return (0);
 			} /* if base %ebp use T_RIXDS */
+			/* fallthrough */
 
 		case T_RIXD:
 		case T_RIXDS:
@@ -551,6 +562,8 @@ unsigned short type;
 			}
 			return (0);
 		}
+		/* fallthrough */
+	default:
 		return (1);
 	}
 }
@@ -558,7 +571,7 @@ unsigned short type;
 /*
  * Chip errata message.
  */
-errata(opcode)
+void errata(int opcode)
 {
 	if (opcode && !nswitch)
 		outab(opcode);
@@ -570,9 +583,7 @@ errata(opcode)
 /*
  * Try to build an opcode.
  */
-static
-buildop(op)
-opc *op;
+static int buildop(opc *op)
 {
 	register unsigned short i, j;
 	static short postSw = 0;
@@ -616,7 +627,7 @@ opc *op;
 	 * checked by excluding (mod == 3) which is rm is register.
 	 */
 	if (postSw) {
-		if (postSw & REP_INSTR)
+		if (postSw & REP_INSTR) {
 			if (!(st->bldr & AFTER_REP))
 				yywarn("Improper instruction following rep");
 				/* Only a few instructions
@@ -624,6 +635,7 @@ opc *op;
 				 * See your machine documentation for details.*/
 			else if (op->code == INSB || op->code == INSW)
 				errata(0);
+		}
 
 		if ((postSw & LOCK_OP) &&
 		    (!(st->bldr & AFTER_LOCK) || (3 == mod)))
@@ -657,7 +669,7 @@ opc *op;
 	     (!rm || ((rm == 4) && (!index || !base)))))
 		errata(NOP);
 
-	if (POP_MEM == op->code) {
+	if (POP_MEM == (unsigned short)op->code) {
 		/* pop	%cs:mem */
 		if (opList[0]->sg == 1)
 			errata(0);
@@ -671,12 +683,12 @@ opc *op;
 	 * aam must be preceeded with special stuff on 80486
 	 * The idea is that there must be an xchg with a non 1 value.
 	 */
-	if (op->code == AAM) {
+	if ((unsigned short)op->code == AAM) {
 		static char seq[8] = {
 			0x51,		/* push		%ecx */
-			0x33, 0xC9,	/* xor		%ecx, %ecx */
-			0x87, 0xC9,	/* xchg		%ecx, %ecx */
-			0xD4, 0x0A,	/* aam */
+			0x33, (char)0xC9,	/* xor		%ecx, %ecx */
+			(char)0x87, (char)0xC9,	/* xchg		%ecx, %ecx */
+			(char)0xD4, 0x0A,	/* aam */
 			0x59		/* pop		%ecx */
 		};
 
@@ -696,9 +708,9 @@ opc *op;
 		lastFlags = (longMode ? LONG_MODE : WORD_MODE) | MODRM_BYTE;
 		switch (lastOp) {
 		case JMP_NEAR:
-			lastOp = JMP_INDIR;	break;
+			lastOp = (short)JMP_INDIR;	break;
 		case CALL_NEAR:
-			lastOp = CALL_INDIR;	break;
+			lastOp = (short)CALL_INDIR;	break;
 		default:
 			yyerror("Indirect mode on invalid instruction");
 			/* Indirection is only allowed on call and jump near
@@ -836,8 +848,7 @@ opc *op;
 /*
  * Output mod/rm byte and maybe sib
  */
-static
-outrm32()
+static void outrm32(void)
 {
 	short modrm, sib;
 
@@ -862,8 +873,7 @@ outrm32()
 /*
  * Output mod/rm byte
  */
-static
-outrm16()
+static void outrm16(void)
 {
 	short modrm;
 
@@ -907,7 +917,7 @@ static unsigned braCt;		/* count of branches */
 /*
  * Called at new pass or init. Returns 1 if another pass required.
  */
-indPass()
+int indPass(void)
 {
 	braCt = 0;		/* so far no branches */
 	if (xpass) {
@@ -944,7 +954,7 @@ register expr *op;
 	static char *list;		/* one for each relative branch */
 	static unsigned max;		/* size of list */
 	char size;			/* BYTE_J NEAR_J EXT_J */
-	long d;				/* displacment */
+	long d = 0;			/* displacment */  /* Pacify GCC about unininitialized variable. */
 	short  flag, exref;
 	char *old;
 
@@ -996,6 +1006,7 @@ register expr *op;
 			if (*old > size)	/* never shrink */
 				break;
 			xpass = 1;		/* take one more pass */
+			/* fallthrough */
 		case 0:
 			*old = size;		/* take new size */
 			break;
@@ -1024,6 +1035,7 @@ register expr *op;
 		outab(longMode ? 0x05 : 0x03);
 
 		nearOp = JMP_NEAR;	/* near jump to caller's destination */
+		/* fallthrough */
 
 	case NEAR_J:	/* near jumps */
 		putOp(nearOp);
