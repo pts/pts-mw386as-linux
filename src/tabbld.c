@@ -882,7 +882,7 @@ void outData(void)
 				strcpy(work, that->name);
 			}
 			fprintf(ofp,
-				"\t{ 0x%04x, %21s },\t/* %-10s %d */\n",
+				"\t{ (short)0x%04x, %21s },\t/* %-10s %d */\n",
 				that->opcode & 0xffff,
 				funtab[that->fun].name,
 				that->name,
@@ -913,7 +913,7 @@ void outData(void)
 					break;
 				}
 				fprintf(ofp,
-				   "\t{ 0x%04x, %21s }%s\t/* %-10s %d */\n",
+				   "\t{ (short)0x%04x, %21s }%s\t/* %-10s %d */\n",
 					that->opcode & 0xffff,
 					funtab[that->fun].name,
 					((++j != opct) ? "," : ""),
