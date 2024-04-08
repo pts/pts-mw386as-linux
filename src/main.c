@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 		case 'D':	/* process in dodefs */
 		case 'E':
 			dodefsw = 1;
-			/* fallthrough */  /* TODO(pts): bugfix: don't fall through */
+			break;
 		case 'V':
 			fprintf(stderr, "Mark Williams 80386 assembler\n");
 			break;
