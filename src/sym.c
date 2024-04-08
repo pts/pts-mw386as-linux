@@ -160,9 +160,7 @@ long limit;
  * This means debug data can seriously screw up an output file
  * if it is wrong.
  */
-void symReNumber(id, number)
-char *id;
-int number;
+void symReNumber(char *id, int number)
 {
 	short i;
 	register sym *sp;

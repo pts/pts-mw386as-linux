@@ -1,10 +1,19 @@
 /*
  * coff format output handler.
  */
-#include <asm.h>
-#include <coff.h>
+
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#include "asm.h"
+#include "coff.h"
 #include "utype.h"
-#include <symtab.h>
+#include "symtab.h"
+
+void writeDebug();
+void writeDebugLong();
+void doOrg(parm *label, data *oper);
 
 #define WHERE 0x40A09C
 
@@ -47,8 +56,6 @@ struct seg {		/* coff section header */
 	RELOC relBuf[RELBUF];		/* relocation entry buffer */
 	LINENO lineBuf[LINEBUF];	/* line number entry buffer */
 };
-
-static long *tracker;	/* for debugging */
 
 static seg *segs, *segend;	/* segment bases */
 static seg *cseg;		/* current segment */
@@ -97,7 +104,7 @@ union full {
  * output spaces and tabs to a position, then output a character.
  */
 static void
-outTo(to, s)
+outTo(int to, int s)
 {
 	int i;
 
@@ -117,7 +124,7 @@ outTo(to, s)
 /*
  * Do titles.
  */
-sTitle()
+void sTitle(void)
 {
 	static short pageno;
 
@@ -134,8 +141,7 @@ sTitle()
 /*
  * output source line
  */
-outLine(p, s)
-char *p, s;
+void outLine(char *p, char s)
 {
 	register char c;
 		
@@ -164,8 +170,7 @@ char *p, s;
  * Write to obj file.
  */
 static void
-owrite(buf, size)
-char *buf;
+owrite(const char *buf, int size)
 {
 	if (1 != fwrite(buf, size, 1, ofp))
 		fatal("Write error on object file");	/**/
@@ -175,9 +180,7 @@ char *buf;
 /*
  * Seek then Write to obj file.
  */
-xwrite(add, buf, size)
-long add;
-char *buf;
+void xwrite(long add, char *buf, int size)
 {
 	if (add != lastSeek) {
 		if (fseek(ofp, add, 0))
@@ -190,12 +193,12 @@ char *buf;
 /*
  * Write actual data.
  */
-outData(s)
+void outData(s)
 register seg *s;
 {
-	register size;
+	register int size;
 
-	if (size = s->bp - s->buf) {
+	if ((size = s->bp - s->buf)) {
 		if (s->s_flags != STYP_BSS) {
 			xwrite(s->data_seekad, s->buf, size);
 			s->data_seekad += size;
@@ -207,12 +210,12 @@ register seg *s;
 /*
  * Write relocation records.
  */
-outRel(s)
+void outRel(s)
 register seg *s;
 {
-	register size;
+	register int size;
 
-	if (size = (char *)s->relBp - (char *)s->relBuf) {
+	if ((size = (char *)s->relBp - (char *)s->relBuf)) {
 		xwrite(s->relo_seekad, (char *)s->relBuf, size);
 		s->relo_seekad += size;
 	}
@@ -222,12 +225,12 @@ register seg *s;
 /*
  * Write Line records.
  */
-outLineRec(s)
+void outLineRec(s)
 register seg *s;
 {
-	register size;
+	register int size;
 
-	if (size = (char *)s->lineBp - (char *)s->lineBuf) {
+	if ((size = (char *)s->lineBp - (char *)s->lineBuf)) {
 		xwrite(s->line_seekad, (char *)s->lineBuf, size);
 		s->line_seekad += size;
 	}
@@ -237,7 +240,7 @@ register seg *s;
 /*
  * put object data byte to buffer.
  */
-binout(b, s)
+void binout(b, s)
 unsigned short b;
 register seg *s;
 {
@@ -251,7 +254,7 @@ register seg *s;
  * Limit data on line. This allows cuts at logical points.
  */
 static void
-limiter(n)
+limiter(int n)
 {
 	if (lswitch && (ct + n) > LIMIT) {
 		putchar('\n');
@@ -262,7 +265,7 @@ limiter(n)
 /*
  * list data
  */
-outlst(b)
+void outlst(b)
 unsigned short b;
 {
 	if (dot.sg == 3) {	/* BSS */
@@ -299,8 +302,7 @@ unsigned short b;
 /*
  * output unrelocated byte
  */
-outab(b)
-unsigned short b;
+void outab(unsigned short b)
 {
 	if (2 == pass) {
 		limiter(1);
@@ -312,8 +314,7 @@ unsigned short b;
 /*
  * output unrelocated word.
  */
-outaw(u)
-unsigned short u;
+void outaw(unsigned short u)
 {
 	if (2 == pass) {
 		union word w;
@@ -329,8 +330,7 @@ unsigned short u;
 /*
  * output unrelocated long.
  */
-outal(ul)
-long ul;
+void outal(long ul)
 {
 	if (2 == pass) {
 		union full l;
@@ -395,9 +395,8 @@ unsigned sw;
 /*
  * output relocated byte
  */
-outrb(oper, sw)
-expr *oper;
-int sw;		/* 0 = Relative address, 1 = PC relative address */
+void outrb(expr *oper, int sw)
+/* sw: 0 = Relative address, 1 = PC relative address */
 {
 	if (2 == pass) {
 		limiter(1);
@@ -415,9 +414,8 @@ int sw;		/* 0 = Relative address, 1 = PC relative address */
 /*
  * output relocated word.
  */
-outrw(oper, sw)
-expr *oper;
-int sw;		/* 0 = Relative address, 1 = PC relative address */
+void outrw(expr *oper, int sw)
+/* sw: 0 = Relative address, 1 = PC relative address */
 {
 	union word w;
 
@@ -439,9 +437,8 @@ int sw;		/* 0 = Relative address, 1 = PC relative address */
 /*
  * output relocated long.
  */
-outrl(oper, sw)
-expr *oper;
-int sw;		/* 0 = Relative address, 1 = PC relative address */
+void outrl(expr *oper, int sw)
+/* sw: 0 = Relative address, 1 = PC relative address */
 {
 	union full l;
 
@@ -465,10 +462,10 @@ int sw;		/* 0 = Relative address, 1 = PC relative address */
 /*
  * Output symbol table string.
  */
-outSymStr(sp)
+void outSymStr(sp)
 register sym *sp;
 {
-	register i;
+	register int i;
 	register char *name;
 
 	name = SYMNAME(sp);
@@ -476,6 +473,7 @@ register sym *sp;
 		owrite(name, i + 1);
 }
 
+#if 0
 static void showIt(sp)
 sym *sp;
 {
@@ -486,6 +484,7 @@ sym *sp;
 	fprintf(stderr, "Trace %X, '%s' flag %d len %d num %d\n",
 		 sp, name, sp->flag, i, sp->num);
 }
+#endif
 
 /*
  * output symbol table entry.
@@ -534,14 +533,14 @@ register sym *sp;
 	if (s.n_scnum > 1)
 		s.n_value += segs[sp->sg - 1].s_vaddr;
 
-	owrite((char *)&s, sizeof(s));
+	owrite((const char*)&s, sizeof(s));
 	return (&s);
 }
 
 /*
  * Go from pass 0 to pass 1 or 2
  */
-newPass(fn)
+void newPass(fn)
 char *fn;
 {
 	register seg *s;
@@ -554,7 +553,7 @@ char *fn;
 	defCt = macNo = dot.loc = 0;
 	if ((txtAt = DEBUG_RECS) && !pass) {
 		xpass = 1;	/* force another pass */
-		symptr = syms = alloc(coffDefCt * sizeof(*syms));
+		symptr = syms = (struct xsym*)alloc(coffDefCt * sizeof(*syms));
 	}
 	longMode = pass = dot.sg = 1;
 	if (indPass()) {	/* take an extra pass */
@@ -621,13 +620,13 @@ char *fn;
 		memcpy(sym._n._n_name, s->s_name, SYMNMLEN);
 		sym.n_scnum = usects;
 		sym.n_numaux = txtAt ? 1 : 0;
-		owrite((char *)&sym, sizeof(sym));
+		owrite((const char*)&sym, sizeof(sym));
 
 		if (sym.n_numaux) {
 			aux.ae_scnlen = s->s_size;
 			aux.ae_nreloc = s->s_nreloc;
 			aux.ae_nlinno = s->s_nlnno;
-			owrite((char *)&aux, sizeof(aux));
+			owrite((const char*)&aux, sizeof(aux));
 		}
 
 		if (s->hiadd && (s->s_flags != STYP_BSS))
@@ -663,7 +662,6 @@ writeHeader()
 	register seg *s;
 	FILEHDR head;
 	int i;
-	long loadd;
 
 	head.f_magic = C_386_MAGIC;
 	time(&head.f_timdat);
@@ -674,10 +672,10 @@ writeHeader()
 	head.f_nscns = usects;
 
 	xwrite(0L, (char *)&head, sizeof(head));
-	for (loadd = i = 0, s = segs; s < segend; s++) {
+	for (i = 0, s = segs; s < segend; s++) {
 		if (s->hiadd || i < MANSEG) {
 			i++;
-			owrite(s, sizeof(SCNHDR));
+			owrite((const char*)s, sizeof(SCNHDR));
 		}
 	}
 }
@@ -685,7 +683,7 @@ writeHeader()
 /*
  * Finish any output.
  */
-cleanUp()
+void cleanUp()
 {
 	int pad;
 	register seg *s;
@@ -704,7 +702,7 @@ cleanUp()
 	symbs = (ftell(ofp) - debpos) / SYMESZ; /* figure sym ct from loc */
 
 	if (strOff > 4) {
-		owrite(&strOff, sizeof(strOff)); /* write length of tail */
+		owrite((const char*)&strOff, sizeof(strOff)); /* write length of tail */
 		writeDebugLong();   /* dump symbols that are too long */
 		symDump(outSymStr, txtAt);	
 	}
@@ -732,9 +730,7 @@ cleanUp()
 /*
  * org command
  */
-doOrg(label, oper)
-parm *label;
-data *oper;
+void doOrg(parm *label, data *oper)
 {
 	register seg *s;
 	long from, to;
@@ -759,29 +755,29 @@ data *oper;
 	case 's':
 		yyerror("Org to invalid value");
 		/* You may not \fB.org\fR to doubles or strings. */
-		return (1);
+		return;  /* Not reached. */
 	case 'y':
 		if (oper->d.y->sg != dot.sg) {
 			yyerror("Org to wrong segment");
 			/* You must \fB.org\fR to the current segment. */
-			return (1);
 		}
 		to = oper->d.y->loc;
 		break;
 	case 'l':
 		to = oper->d.l;	/* org where requested */
+		break;
+	default:
+		to = 0;  /* Pacify GCC about uninitialized variable. */
 	}
 
 	if ((pass != 2) || (s->s_flags == STYP_BSS)) { /* no disk work */
 		s->curadd = dot.loc = to;	/* make segment current again */
 		if (to > s->hiadd)
 			s->hiadd = dot.loc;
-		return (0);
 	}
 	if (to <= s->hiadd) {	/* no pad if we've been there */
 		s->curadd = dot.loc = to;
 		s->data_seekad += to - from;
-		return (0);
 	}
 	from = s->curadd = dot.loc = s->hiadd;	/* seek to the old end */
 	s->data_seekad += s->hiadd - from;
@@ -792,13 +788,12 @@ data *oper;
 	s->curadd = dot.loc = to;	/* make segment current again */
 	if (to > s->hiadd)
 		s->hiadd = dot.loc;
-	return (0);
 }
 
 /*
  * Initialize segment information.
  */
-segInit()
+void segInit(void)
 {
 	int i;
 	register seg *s;
@@ -810,7 +805,7 @@ segInit()
 		STYP_TEXT, STYP_DATA, STYP_BSS
 	};
 
-	cseg = segs = alloc(sizeof(*segs) * MANSEG);
+	cseg = segs = (seg*)alloc(sizeof(*segs) * MANSEG);
 	segend = segs + MANSEG;
 
 	for (i = 0, s = segs; s < segend; s++, i++) {
@@ -826,17 +821,15 @@ segInit()
 /*
  * .ident and .version set stuff in the comment section.
  */
-cmnt(op, p)
-opc *op;
-parm *p;
+void cmnt(opc *op, parm *p)
 {
+	(void)op; (void)p;
 }
 
 /*
  * coff debugging statements.
  */
-coffFile(s)
-parm *s;
+void coffFile(parm *s)
 {
 #ifdef NODEBUG
 	return;
@@ -862,8 +855,7 @@ parm *s;
 #endif
 }
 
-coffDef(s)
-parm *s;
+void coffDef(parm *s)
 {
 #ifdef NODEBUG
 	return;
@@ -881,7 +873,7 @@ parm *s;
 #endif
 }
 
-coffEndef()
+void coffEndef(void)
 {
 #ifdef NODEBUG
 	return;
@@ -949,8 +941,7 @@ coffEndef()
 /*
  * .type command
  */
-coffType(n)
-long n;
+void coffType(long n)
 {
 #ifdef NODEBUG
 	return;
@@ -980,13 +971,11 @@ long n;
 #endif
 }
 
-coffVal(item)
-data *item;
+void coffVal(data *item)
 {
 #ifdef NODEBUG
 	return;
 #else
-	SYMENT *s;
 
 	if (2 != pass)
 		return;
@@ -1011,8 +1000,7 @@ data *item;
 #endif
 }
 
-coffScl(n)
-long n;
+void coffScl(long n)
 {
 #ifdef NODEBUG
 	return;
@@ -1029,8 +1017,7 @@ long n;
 #endif
 }
 
-coffSize(n)
-long n;
+void coffSize(long n)
 {
 #ifdef NODEBUG
 	return;
@@ -1044,9 +1031,7 @@ long n;
 #endif
 }
 
-coffDim(n, d)
-long n;
-int d;
+void coffDim(long n, int d)
 {
 #ifdef NODEBUG
 	return;
@@ -1067,8 +1052,7 @@ int d;
 #endif
 }
 
-coffTag(p)
-parm *p;
+void coffTag(parm *p)
 {
 #ifdef NODEBUG
 	return;
@@ -1094,8 +1078,7 @@ parm *p;
 #endif
 }
 
-coffLn(n)
-long n;
+void coffLn(long n)
 {
 #ifdef NODEBUG
 	return;
@@ -1115,8 +1098,7 @@ long n;
 #endif
 }
 
-coffLine(n)
-long n;
+void coffLine(long n)
 {
 #ifdef NODEBUG
 	return;
@@ -1133,7 +1115,7 @@ long n;
 /*
  * Write debug records.
  */
-writeDebug()
+void writeDebug()
 {
 	register struct xsym *s, *ends;
 	int ct = 0, act = 0;
@@ -1161,16 +1143,16 @@ writeDebug()
 			strncpy(sym.n_name, s->name, SYMNMLEN);
 		
 		ct++;
-		owrite(&sym, SYMESZ);
+		owrite((const char*)&sym, SYMESZ);
 		if (sym.n_numaux) {
 			act++;
-			owrite(&(s->aux), AUXESZ);
+			owrite((const char*)&(s->aux), AUXESZ);
 		}
 	}
 	
 }
 
-writeDebugLong()
+void writeDebugLong()
 {
 	register struct xsym *s, *ends;
 
@@ -1189,10 +1171,7 @@ writeDebugLong()
  * .comm and .lcomm commands.
  * Improve later.
  */
-comm(op, p, n)
-opc *op;
-parm *p;
-long n;
+void comm(opc *op, parm *p, long n)
 {
 	if (NULL == p) {
 		yyerror(".comm must have tag");
@@ -1289,7 +1268,7 @@ char *name;
 
 	/* adjust pointers to segment list */
 	motion = (char *)segs - oldsegs;
-#define adjust(ptr) ptr = (char *)(((char *)(ptr)) + motion)
+#define adjust(ptr) ptr = (void *)(((char *)(ptr)) + motion)
 	adjust(cseg);
 	adjust(segend);
 	for (s = segs; s < segend; s++) {
