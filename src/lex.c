@@ -2,11 +2,20 @@
  * This is the controlling loop in the assembler.
  *
  */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "utype.h"
-#include <asm.h>
-#include <asflags.h>
-#include <y_tab.h>
-#include <symtab.h>
+#include "asm.h"
+#include "asflags.h"
+#include "y_tab.h"
+#include "symtab.h"
+
+void cleanUp(void);
+void newPass(char *fn);
+void outLine(char *p, char s);
 
 /* states */
 #define INITIAL	0
@@ -68,7 +77,7 @@ static char buf[1024], *bp = buf;
 static char *backOff;	/* start of decimal number */
 static char fromMac = ' ';		/* ' ' or '+' */
 static short opIx;	/* index of current opcode */
-static psw = 0;
+static int psw = 0;
 static long number = 0;
 static char token[1024], *tp;
 
@@ -101,11 +110,10 @@ char *s;
  * # as first char of line foils replacment.
  */
 static char *
-expand(s, recurs)
-register char *s;
+expand(register char *s, int recurs)
 {
-	register char c;
-	char *tp, *rep, *newl, *start;
+	register char c = 0;  /* Pacify GCC about uninitialized variable. */
+	char *tp = 0, *rep = 0, *newl, *start;  /* Pacify GCC about uninitialized variables. */
 	macro *mac;
 	short sav, pb;
 	unsigned short point;
@@ -207,7 +215,7 @@ nextMac()
 /*
  * Save a line in a macro.
  */
-saveLine()
+void saveLine()
 {
 	macline *newl;
 
@@ -273,7 +281,7 @@ getLine()
 				default:
 					fprintf(errdev, "%d Errors\n", errCt);
 				}
-				unlink(outName);
+				remove(outName);
 				exit(1);
 			}
 			else {	/* avoid close & open */
@@ -458,7 +466,7 @@ startLine()
  * Got an opcode, set it up.
  */
 static
-doOp(opIx)
+int doOp(int opIx)
 {
 	register opc *op;
 
@@ -473,6 +481,7 @@ doOp(opIx)
 	case OP:
 		if (stype->bldr & REP_INSTR)
 			pos = OPCODE;
+		/* fallthrough */
 	case ICMD:
 	case DATA:
 		RSTATE(ytype, WHITE)
@@ -489,13 +498,14 @@ doOp(opIx)
 		RSTATE(ytype, CMSTATE)
 	default:
 		fatal("Optype %d in lex", ytype); /* TECH */
+		return 0;  /* Not reached. */
 	}
 }
 
 /*
  * get tokens
  */
-yylex()
+int yylex()
 {
     register short c;
 
@@ -633,6 +643,7 @@ yylex()
 		case '/':
 			if (scnt | dcnt)
 				break;
+			/* fallthrough */
 		case 0:		/* let # define take semicolon */
 		case '\n':
 			*tp = '\0';
@@ -703,6 +714,7 @@ yylex()
 		case '/':
 			if (!vctr)
 				break;
+			/* fallthrough */
 		case 0:
 		case '\n':
 			if (pcnt | bcnt | scnt | dcnt) {
@@ -790,7 +802,7 @@ yylex()
 		case '5':	case '6':	case '7':	case '8':
 		case '9':	case '0':
 			backOff = bp - 1;
-			if (number = c - '0')
+			if ((number = c - '0'))
 				NEWS(DNUM)
 			NEWS(LZERO);
 
@@ -1023,6 +1035,7 @@ yylex()
 				RSTATE(TOKEN, psw)
 			}
 			yyerror("End of line detected in character constant");
+			/* fallthrough */
 			/**/
 		case '\'':
 			if (state != INCHAR)
