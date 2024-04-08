@@ -1,8 +1,10 @@
 /*
  * Create a new copy of a string.
  */
-#include "local_misc.h"
-extern char *strcpy();
+
+#include <string.h>
+
+char *alloc(unsigned n);
 
 char *
 newcpy(s)
