@@ -157,18 +157,19 @@ void
 readHeaders(fn) char *fn;
 {
 	FILEHDR	fh;
-	time_t tt;
+	union { time_t t; i32_t i[2]; } tt;
 
 	fp = xopen(fn, "rb");
 
 	if (1 != fread(&fh, sizeof(fh), 1, fp))
 		fatal("error reading COFF header");
 
-	tt = fh.f_timdat;  /* In case of size difference. */
+	tt.i[1] = 0;  /* Defensive programming in case libc .h is 32 bits and libc code is 64 bits. */
+	tt.t = fh.f_timdat;  /* In case of size difference. */
 	printf("FILE %s HEADER VALUES\n", fn);
 	printf("magic number   = 0x%x\n", fh.f_magic);
 	printf("sections       = %"PRId32"\n", num_sections = fh.f_nscns);
-	printf("file date      = %s", ctime(&tt));
+	printf("file date      = %s", ctime(&tt.t));
 	printf("symbol ptr     = 0x%"PRIx32"\n", symptr = fh.f_symptr);
 	printf("symbols        = %"PRId32"\n", num_symbols = fh.f_nsyms);
 	printf("sizeof(opthdr) = %d\n", fh.f_opthdr);

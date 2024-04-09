@@ -7,6 +7,7 @@
 #include <time.h>
 
 #include "asm.h"
+#include "intsize.h"
 #include "coff.h"
 #include "utype.h"
 #include "symtab.h"
@@ -660,11 +661,12 @@ writeHeader()
 	register seg *s;
 	FILEHDR head;
 	int i;
-	time_t tt;
+	union { time_t t; i32_t i[2]; } tt;
 
 	head.f_magic = C_386_MAGIC;
-	time(&tt);
-	head.f_timdat = tt;  /* Discard high bits if shorter. */
+	tt.i[1] = 0;  /* Defensive programming in case libc .h is 32 bits and libc code is 64 bits. */
+	time(&tt.t);
+	head.f_timdat = tt.t;  /* Discard high bits if shorter. */
 	head.f_nsyms = symbs;
 	head.f_symptr = debpos;
 	head.f_opthdr = 0;

@@ -207,10 +207,11 @@ int main(int argc, char **argv)
 
 	/* get ctime without \n */
 	{
-		time_t t;
+		union { time_t t; i32_t i[2]; } tt;
 
-		time(&t);
-		dTime = ctime(&t);
+		tt.i[1] = 0;  /* Defensive programming in case libc .h is 32 bits and libc code is 64 bits. */
+		time(&tt.t);
+		dTime = ctime(&tt.t);
 		dTime[strlen(dTime) - 1] = '\0';
 	}
 
