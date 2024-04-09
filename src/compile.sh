@@ -52,7 +52,10 @@ case "$CCBASE" in
   fi
   ;;
  *minicc*)  # https://github.com/pts/minilibc686
-  CEXTRA="--gcc=4.8 -march=i386 -W -Wall -ansi -pedantic" ;;  # TODO(pts): `--wcc -Wno-n308' generates a bit larger code.
+  # -mfiles=2 is enough for opening 2 files at a time: the input .s file and
+  # the output .o file. We need one more file for each additional
+  # `.include' depth. Thus 32 gives .s + 30 .include files at the same time.
+  CEXTRA="--gcc=4.8 -march=i386 -mfiles=32 -W -Wall -ansi -pedantic" ;;  # TODO(pts): `--wcc -Wno-n308' generates a bit larger code.
  *)  # Defaults for GCC and Clang.
   # It works with both -fsigned-char (GCC and Clang default) and -funsigned-char in $@.
   CEXTRA="-O2 -W -Wall -ansi -pedantic" ;;  # We don't want -Werror.
