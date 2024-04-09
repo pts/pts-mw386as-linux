@@ -2,7 +2,7 @@
 
 /* fake version of ldiv() */
 typedef struct ldiv_t { i32_t quot, rem; } ldiv_t;
-ldiv_t ldiv(numer, denom) i32_t numer, denom;
+static ldiv_t ldiv(numer, denom) i32_t numer, denom;
 {
 	ldiv_t l;
 	l.quot = numer / denom;
