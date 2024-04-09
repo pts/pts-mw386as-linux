@@ -2,9 +2,7 @@
 #ifndef _STDDEF_H
 #define _STDDEF_H
 
-#ifndef __i386__
-#  error <stddef.h> is written only for i386.
-#endif
-typedef unsigned size_t;
+typedef unsigned long size_t;
+typedef char assert_size_t_size[sizeof(size_t) == sizeof(void*) ? 1 : -1];
 
 #endif  /* _STDDEF_H */

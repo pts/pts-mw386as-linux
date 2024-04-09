@@ -2,10 +2,6 @@
 #ifndef _STDARG_H
 #define _STDARG_H
 
-#ifndef __i386__
-#  error <stdarg.h> is written only for i386.
-#endif
-
 /* This is a size optimization. It only works on i386 and if the function
  * taking the `...' arguments is __attribute__((noinline)).
  */
@@ -63,7 +59,7 @@
 #    define va_copy(dest, src) small_va_copy(dest, src)
 #    define va_end(ap)         small_va_end(ap)
 #  else
-#    error Unsupported platform for <stdarg.h>
+#    error Unsupported platform or compiler for <stdarg.h>  /* For example, __TINYC__ is supported only on i386. */
 #  endif
 #endif
 
