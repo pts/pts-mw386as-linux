@@ -77,6 +77,7 @@ int *lineno;
 						*lineno + oldline);
 			return (NULL);
 		}
+	    got_c:
 
 		switch (state) {
 		case normal:
@@ -200,9 +201,9 @@ int *lineno;
 				}
 			}
 			else {
-				ungetc(c, ifp);
 				state = normal;
 				addchr(octacc);
+				goto got_c;  /* Process c again. */
 			}
 			continue;
 		}
