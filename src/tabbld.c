@@ -837,7 +837,7 @@ void outData(void)
 			f->operands);
 		if (f->operands) {
 			for (j = 0; j < f->operands; j++)
-				fprintf(ofp, "%s%s", ", " + (j == 0), opertab[(unsigned char)f->ap[j]].name);
+				fprintf(ofp, "%s%s", &", "[j == 0], opertab[(unsigned char)f->ap[j]].name);
 		} else {
 			fputs(" 0", ofp);  /* C89 doesn't allow empty initializers. */
 		}
