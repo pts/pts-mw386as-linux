@@ -600,7 +600,7 @@ numexp	: NUMBER {
 	| string AT string {
 		$$ = stringSearch($1, $3); }
 	| TONUMBER string {
-		$$ = atol($2); }
+		$$ = strtol($2, NULL, 10); }
 	| TONUMBER dblexp {
 		$$ = $2; };
 

@@ -5,7 +5,7 @@
 #include <stddef.h>  /* size_t. */
 
 #define NULL ((void*)0)
-long atol(const char *nptr);
+long strtol(const char *nptr, char **endptr, int base);
 void exit(int exit_code);
 void *malloc(size_t size);
 void free(void *ptr);

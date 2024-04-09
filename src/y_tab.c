@@ -1234,7 +1234,7 @@ case 89: {
 case 90: {
 
 
-		yyval.val = atol(yypvt[0].t); }break;
+		yyval.val = strtol(yypvt[0].t, NULL, 10); }break;
 
 case 91: {
 

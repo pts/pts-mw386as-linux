@@ -61,7 +61,7 @@ dodefs()
 				       MACSTR);
 			}
 			else
-				symLookUp(gcpy(as_optarg, 0), S_XSYM, atol(p), 0);
+				symLookUp(gcpy(as_optarg, 0), S_XSYM, strtol(p, NULL, 10), 0);
 			*--p = '=';
 			break;
 		default: break;
