@@ -32,7 +32,7 @@ static unsigned qtop = 0;	/* highest used quick block */
 char *alloc(size_t n) {
 	register char *p;
 
-	if ((p = (char *)calloc(n, 1)) == NULL)
+	if ((p = (char *)malloc(n)) == NULL)
 		fatal("Out of space");
 		/* A call to \fBmalloc()\fR failed.
 		 * The typical large consumers of RAM are macros
@@ -41,6 +41,7 @@ char *alloc(size_t n) {
 		 * smaller pieces?
 		 * Could you be in some sort of
 		 * endless recursion or loop? */
+	memset(p, '\0', n);
 	return (p);
 }
 
