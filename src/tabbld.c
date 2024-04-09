@@ -241,6 +241,36 @@ buildTst(void)
 	this->badlist = newcpy(this->badlist);
 }
 
+/* A simplified sscanf(3) implementation. */
+static void tabbld_sscanf(const char *s, const char *fmt, ...) {
+  char c, *endp;
+  va_list ap;
+  va_start(ap, fmt);
+  while ((c = *fmt++) != '\0') {
+    if (c == ' ') {
+      for (; isspace(*s); ++s) {}
+    } else if (c == '%') {
+      if ((c = *fmt++) == 'd' || c == 'x') {
+        va_arg(ap, int*)[0] = strtol(s, &endp, c == 'd' ? 10 : 16);  /* For simplicity, we don't check for errors, and we allow negative. */
+        s = endp;
+      } else if (c == 's') {
+        endp = va_arg(ap, char*);
+        for (; *s != '\0' && !isspace(*s); *endp++ = *s++) {}
+        *endp = '\0';
+      } else {
+        error("unsupported sscanf format specifier: %c", c); exit(2);
+      }
+    } else {
+      if (c != *s) { error("sscanf expected character %c, got %c", c, *s); exit(2); }
+      ++s;
+    }
+  }
+#if 0  /* Not always true. */
+  for (; isspace(*s); ++s) {}
+  if (*s != '\0') { error("sscanf input remaining: %s", s); exit(2); }
+#endif
+}
+
 /*
  * Build assembler directives.
  */
@@ -250,7 +280,7 @@ void buildDir(void)
 	register opts *this;
 	int i, j;
 
-	sscanf(line, "%d %s %s %s", &i, opc, cmd, yt);
+	tabbld_sscanf(line, "%d %s %s %s", &i, opc, cmd, yt);
 	opcode = i;
 	sprintf(fname, "S_%s", cmd);
 
@@ -294,7 +324,7 @@ buildReg(void)
 	EXPAND(reg);
 	new = regtab + regct - 1;
 
-	sscanf(line,
+	tabbld_sscanf(line,
 		 "%s %s %d %d",
 		 name, ytype, &i, &j);
 	new->loc = i;
@@ -314,7 +344,7 @@ buildOp(void)
 	unsigned u;
 
 	optDoc = opc[0] = op1[0] = op2[0] = op3[0] = '\0';
-	sscanf(line, "%s %s", optf, opc);
+	tabbld_sscanf(line, "%s %s", optf, opc);
 
 	if ('G' == optf[0]) {	/* general opcode */
 		curgen = -1;
@@ -345,7 +375,7 @@ buildOp(void)
 	if (!opc[0])
 		error("Null name");
 
-	sscanf(line, "%s %x %s %s %s %s", optf, &u, opc, op1, op2, op3);
+	tabbld_sscanf(line, "%s %x %s %s %s %s", optf, &u, opc, op1, op2, op3);
 	opcode = u;
 
 	for (p = optf; ; p++) {
@@ -1088,10 +1118,10 @@ int main(int argc, char *argv[])
 			eswitch = 1;
 			continue;
 		case 't':
-			sscanf(as_optarg, "%x", &tmask);
+			tabbld_sscanf(as_optarg, "%x", &tmask);
 			break;
 		case 'n':
-			sscanf(as_optarg, "%x", &nmask);
+			tabbld_sscanf(as_optarg, "%x", &nmask);
 			break;
 		case '?':
 		default:
@@ -1147,7 +1177,7 @@ int main(int argc, char *argv[])
 	while (NULL != (line = as_getline(stdin, &lineno))) {
 		switch (*line) {
 		case '+':
-			sscanf(line + 2, "%d", &state);
+			tabbld_sscanf(line + 2, "%d", &state);
 			continue;
 		case 0:
 			if (1 == state) {	/* pass through comments */
