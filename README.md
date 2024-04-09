@@ -66,7 +66,16 @@ compliers, like this:
 
 * `src/compile.sh tcc` uses [TinyCC](https://bellard.org/tcc/) as the
   compiler. The script adds different warning flags (e.g. no `-ansi`) than
-  for GCC, but otherwise it's similar to `src/compile.sh gcc`.
+  for GCC, but otherwise it's similar to `src/compile.sh gcc`. Please note
+  that TinyCC is a fast, but non-optimizing compiler: the generated execable
+  is slow and big.
+
+* `src/compile.sh miniutcc` uses *miniutcc* as the C compiler, which is a
+  self-contained variant of [TinyCC](https://bellard.org/tcc/). It's part of
+  the pts-mw386as-linux Git repository as the Linux i386 executable
+  `tools/miniutcc`. It's self-contained, installing any C compiler, C header
+  files, libc, assembler or linker is not necessary. It generates
+  statically linked Linux i386 executables.
 
 * `src/compile.sh owcc` uses the
   [OpenWatcom](https://github.com/open-watcom/open-watcom-v2) C compiler and

@@ -28,7 +28,12 @@ IS_CROSS=  # If non-empty, then we do cross-compilation.
 if test "$1" = --cross; then IS_CROSS=1; shift; fi
 case "$CCBASE" in
  *tcc* | *tinycc*)  # TinyCC: https://bellard.org/tcc/
-  CEXTRA="-O2 -W -Wall" ;;
+  CEXTRA="-O2 -W -Wall"
+  if test "$CC" = miniutcc; then  # https://github.com/pts/minilibc686/blob/master/tools/miniutcc single-file precompiled for Linux i386, no #include.
+    type "$CC" >/dev/null 2>&1 || CC=../tools/miniutcc
+  fi
+  test "${CCBASE#*miniutcc}" = "$CCBASE" || CEXTRA="$CEXTRA -Ic89include"
+  ;;
  *owcc*)  # OpenWatcom (https://github.com/open-watcom/open-watcom-v2) targeting Linux i386 or Win32, running on Linux i386 or amd64.
   test "$WATCOM"
   CEXTRA="-fsigned-char -O2 -W -Wall -std=c89 -Wno-n308"  # We don't want -Werror.
