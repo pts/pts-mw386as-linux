@@ -9,7 +9,7 @@ void dodefs();		/* process -D and -E options at each pass */
 
 /* getargs */
 extern int optix;	/* reset to 1 to reporcess */
-extern char *optarg;	/* Global argument pointer */
+extern char *as_optarg;	/* Global argument pointer */
 int getargs(int argc, char * const argv[], const char *optstring);	/* fancy get arguments, like getopt(3) */
 
 /* hash */

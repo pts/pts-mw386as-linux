@@ -15,7 +15,7 @@
 char *newcpy(register char *s);
 i32_t randl(void);
 char *alloc(unsigned n);
-extern char *optarg;
+extern char *as_optarg;
 int getargs(int argc, char * const argv[], const char *optstring);  /* getopt(3) would also work, but that's not C89. */
 unsigned short hash(register char *p);
 FILE *xopen(const char *fn, const char *acs);
@@ -1088,10 +1088,10 @@ int main(int argc, char *argv[])
 			eswitch = 1;
 			continue;
 		case 't':
-			sscanf(optarg, "%x", &tmask);
+			sscanf(as_optarg, "%x", &tmask);
 			break;
 		case 'n':
-			sscanf(optarg, "%x", &nmask);
+			sscanf(as_optarg, "%x", &nmask);
 			break;
 		case '?':
 		default:

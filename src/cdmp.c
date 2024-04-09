@@ -40,7 +40,7 @@ typedef	char	SECNAME[9];	/* NUL-terminated 8 character section name */
 #define cx(x) case x: printf(#x "\tvalue=0x%"PRIx32" ", se->n_value); break;
 
 /* Externals. */
-extern	char	*optarg;
+extern	char	*as_optarg;
 
 /* Forward. */
 char *checkStr(char *s);
@@ -752,7 +752,7 @@ int main(argc, argv) int argc; char *argv[];
 
 		case 0:
 			/* Process a COFF file. */
-			readHeaders(optarg);
+			readHeaders(as_optarg);
 			for (i = 0; i < num_sections; i++)
 				readSection(i);
 			if (num_symbols) {

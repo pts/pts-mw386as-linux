@@ -48,7 +48,7 @@ dodefs()
 		switch(c) {
 		case 'D':
 		case 'E':
-			if (NULL == (p = strchr(optarg, '=')) || p == optarg)
+			if (NULL == (p = strchr(as_optarg, '=')) || p == as_optarg)
 				fatal("Invalid option on -%c switch", c);
 				/* The syntax of -D and -E switches is
 				 * -Dname=string
@@ -56,12 +56,12 @@ dodefs()
 			*p++ = '\0';
 			if ('D' == c) {
 				defCt++;
-				defMac(gcpy(optarg, 0),
+				defMac(gcpy(as_optarg, 0),
 				       gcpy(p, offset(parm, str)),
 				       MACSTR);
 			}
 			else
-				symLookUp(gcpy(optarg, 0), S_XSYM, atol(p), 0);
+				symLookUp(gcpy(as_optarg, 0), S_XSYM, atol(p), 0);
 			*--p = '=';
 			break;
 		default: break;
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 				fatal("more than one file to process");
 				/* The assembler will only process one file
 				 * at a time. */
-			fileName = optarg;
+			fileName = as_optarg;
 			break;
 
 		case 'a':	/* align data objects */
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 			break;
 
 		case 'o':
-			outName = optarg;
+			outName = as_optarg;
 			if ((NULL == (p = strrchr(outName, '.'))) ||
 			    strcmp(p, ".o"))
 				fatal("Unlikely output file '%s'", outName);

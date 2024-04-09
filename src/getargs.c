@@ -16,7 +16,7 @@
 
 void fatal(const char *fmt, ...);
 
-char	*optarg;	/* Global argument pointer. */
+char	*as_optarg;	/* Global argument pointer. */
 int	optix = 1;	/* Global argv index. Reset to 1 to rescan. */
 
 static char	*scan = NULL;	/* Private scan pointer. */
@@ -27,13 +27,13 @@ int getargs(int argc, char * const argv[], const char *optstring)
 	register char c, a;
 	register char *place;
 
-	for (optarg = NULL; scan == NULL || !*scan; scan++, optix++) {
+	for (as_optarg = NULL; scan == NULL || !*scan; scan++, optix++) {
 		if (optix >= argc) {
 			scan = NULL;
 			return(EOF);
 		}
 		if (*(scan = argv[optix]) != '-') {
-			optarg = scan;
+			as_optarg = scan;
 			scan = NULL;
 			optix++;
 			return (0);
@@ -46,10 +46,10 @@ int getargs(int argc, char * const argv[], const char *optstring)
 		/**/
 	if (((a = place[1]) == ':') || (a == '!')) {
 		if (*scan || (a == '!')) {
-			optarg = scan;
+			as_optarg = scan;
 			scan = NULL;
 		} else if (optix < argc)
-			optarg = argv[optix++];
+			as_optarg = argv[optix++];
 		else
 			fatal("Command option '%c' missing its argument", c);
 			/**/
@@ -77,16 +77,16 @@ char *argv[];
 			printf("option %c\n", c);
 			break;
 		case 'g':
-			if (*optarg)
-				printf("option g with %s\n", optarg);
+			if (*as_optarg)
+				printf("option g with %s\n", as_optarg);
 			else
 				printf("option g with no argument\n");
 			break;
 		case 'f':
-			printf("option f with %s\n", optarg);
+			printf("option f with %s\n", as_optarg);
 			break;
 		case 0:
-			printf("argument '%s'\n", optarg);
+			printf("argument '%s'\n", as_optarg);
 			break;
 		default:
 			printf(
