@@ -41,7 +41,7 @@ static void
 addchr(char c)
 {
 	while (i >= size)
-		if (NULL == (line = realloc(line, size += 80)))
+		if (NULL == (line = (char*)realloc(line, size += 80)))
 			fatal("Out of space");
 			/* NODOC */
 	line[i++] = c;
@@ -54,15 +54,12 @@ static void
 addcom(char c)
 {
 	while (j >= csize)
-		if (NULL == (comment = realloc(comment, csize += 80)))
+		if (NULL == (comment = (char*)realloc(comment, csize += 80)))
 			fatal("Out of space");	/* NODOC */
 	comment[j++] = c;
 }
 
-char *
-as_getline(ifp, lineno)
-FILE *ifp;
-int *lineno;
+char *as_getline(FILE *ifp, int *lineno)
 {
 	int c;
 	int octacc = 0, octcnt = 0;  /* Initialize to 0 to pacify GCC 4.8 warning about uninitialized local variable. */

@@ -1,9 +1,7 @@
 /*
  * Read a string return the hash value computed using CRC-16 methods.
  */
-unsigned short
-hash(p)
-register char *p;
+unsigned short hash(register char *p)
 {
 	register unsigned char tmp, c; /* warning types are carefully chosen */
 	register unsigned short h;

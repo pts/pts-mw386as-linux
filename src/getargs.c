@@ -13,6 +13,7 @@
  * process mixed options and file names.
  */
 #include <stdio.h>
+#include <string.h>
 
 void fatal(const char *fmt, ...);
 
@@ -20,12 +21,11 @@ char	*as_optarg;	/* Global argument pointer. */
 int	optix = 1;	/* Global argv index. Reset to 1 to rescan. */
 
 static char	*scan = NULL;	/* Private scan pointer. */
-extern char	*strchr();
 
 int getargs(int argc, char * const argv[], const char *optstring)
 {
 	register char c, a;
-	register char *place;
+	register const char *place;
 
 	for (as_optarg = NULL; scan == NULL || !*scan; scan++, optix++) {
 		if (optix >= argc) {

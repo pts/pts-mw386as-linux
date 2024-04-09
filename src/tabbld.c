@@ -61,7 +61,7 @@ short opct, oplen;
 
 struct funs {
 	char *name;
-	char *type;	/* yacc type */
+	const char *type;	/* yacc type */
 	short opt;	/* generation type */
 	char operands;  /* operand ct */
 	char ap[3];	/* operands */
@@ -70,22 +70,22 @@ short funct, funlen;
 
 struct regs {
 	char *name;
-	char *ytype;
+	const char *ytype;
 	short loc;
 	short len;
 } *regtab;
 short regct, reglen;
 
-#define START(n, m) n##tab = (void*)alloc((n##len = m) * sizeof(*n##tab))
+#define START(n, m, type) n##tab = (type*)alloc((n##len = m) * sizeof(*n##tab))
 
 /* expander for tables */
-#define EXPAND(n) if((n##len <= (++n##ct)) \
- && (NULL == (n##tab = realloc(n##tab, ((n##len += 10) * sizeof(*n##tab)))))) \
+#define EXPAND(n, type) if((n##len <= (++n##ct)) \
+ && (NULL == (n##tab = (type*)realloc(n##tab, ((n##len += 10) * sizeof(*n##tab)))))) \
 	outSpace(__LINE__)
 
 /* expander for allnames */
 #define NEWN(n, r) if((n##len <= (n##ct += r)) \
- && (NULL == (n##tab = realloc(n##tab, n##len += 10)))) \
+ && (NULL == (n##tab = (char*)realloc(n##tab, n##len += 10)))) \
 	outSpace(__LINE__)
 
 extern char *comment;	/* from as_getline() */
@@ -100,7 +100,7 @@ static int lastp;	/* last entry on prefTab */
 static short ct, opcode, opt;
 static u32_t optDoc;
 static char fname[22], opc[22], op1[22], op2[22], op3[22], cmd[22], yt[22];
-static char thisGen[22];
+static char curoperGen[22];
 static int errors;		/* error count */
 
 /* test selector switches */
@@ -162,32 +162,32 @@ void showStats(int n)
 void
 buildTst(void)
 {
-	register struct oper *this;
+	register struct oper *curoper;
 	register char *p;
 	static int base;
 	int state, c;
 
-	EXPAND(oper);
-	this = opertab + operct - 1;
+	EXPAND(oper, oper);
+	curoper = opertab + operct - 1;
 
 	switch (line[0]) {	/* mark base and extra */
 	case '.':
-		this->base = ++base;
+		curoper->base = ++base;
 		/* fallthrough */
 	case '!':
-		this->flag = (X_LARGE|X_SMALL);
+		curoper->flag = (X_LARGE|X_SMALL);
 		break;
 	case 'B':
-		this->base = ++base;
+		curoper->base = ++base;
 		/* fallthrough */
 	case 'E':
-		this->flag = X_LARGE;
+		curoper->flag = X_LARGE;
 		break;
 	case 'b':
-		this->base = ++base;
+		curoper->base = ++base;
 		/* fallthrough */
 	case 'e':
-		this->flag = X_SMALL;
+		curoper->flag = X_SMALL;
 		break;
 	default:
 		operct--;
@@ -198,10 +198,10 @@ buildTst(void)
 	for (p = line + 2; (c = *p) && !isspace(c); p++)
 		;
 	*p++ = '\0';
-	this->name = newcpy(line + 2);
+	curoper->name = newcpy(line + 2);
 
 	/* Count the valid productions on the line */
-	this->goodlist = p;
+	curoper->goodlist = p;
 	for (state = 0; (c = *p); p++) {
 		if (state) {	/* in a production */
 			if (!isspace(c)) {
@@ -216,17 +216,17 @@ buildTst(void)
 			continue;
 		if ('?' == c)
 			break;
-		this->goodct++;
+		curoper->goodct++;
 		state = 1;
 	}
 	*p++ = '\0';
-	this->goodlist = newcpy(this->goodlist);
+	curoper->goodlist = newcpy(curoper->goodlist);
 	if (!c)
 		return;
 
 	/* count the invalid productions on the line */
-	this->badlist = p;
-	for (state = this->badct = 0; (c = *p); p++) {
+	curoper->badlist = p;
+	for (state = curoper->badct = 0; (c = *p); p++) {
 		if (state) {
 			if (!isspace(c))
 				continue;
@@ -235,10 +235,10 @@ buildTst(void)
 		}
 		if (isspace(c))
 			continue;
-		this->badct++;
+		curoper->badct++;
 		state = 1;
 	}
-	this->badlist = newcpy(this->badlist);
+	curoper->badlist = newcpy(curoper->badlist);
 }
 
 /* A simplified sscanf(3) implementation. */
@@ -277,7 +277,7 @@ static void tabbld_sscanf(const char *s, const char *fmt, ...) {
 void buildDir(void)
 {
 	register funs *f;
-	register opts *this;
+	register opts *curoper;
 	int i, j;
 
 	tabbld_sscanf(line, "%d %s %s %s", &i, opc, cmd, yt);
@@ -289,7 +289,7 @@ void buildDir(void)
 			break;
 
 	if (j == funct) {	/* not found build one */
-		EXPAND(fun);
+		EXPAND(fun, funs);
 		f = funtab + j;
 		f->name = newcpy(fname);
 		f->opt = f->operands = 0;
@@ -301,14 +301,14 @@ void buildDir(void)
 		return;
 
 	i = opct;
-	EXPAND(op);
-	this = optab + i;
-	this->name = newcpy(opc);
-	this->fun = j;
-	this->opcode = opcode;
-	this->gen = -1;
-	this->hash = -2;
-	this->lineno = lineno;
+	EXPAND(op, opts);
+	curoper = optab + i;
+	curoper->name = newcpy(opc);
+	curoper->fun = j;
+	curoper->opcode = opcode;
+	curoper->gen = -1;
+	curoper->hash = -2;
+	curoper->lineno = lineno;
 }
 
 /*
@@ -317,20 +317,20 @@ void buildDir(void)
 void
 buildReg(void)
 {
-	register regs *new;
+	register regs *newregs;
 	char name[22], ytype[22];
 	int i, j;
 
-	EXPAND(reg);
-	new = regtab + regct - 1;
+	EXPAND(reg, regs);
+	newregs = regtab + regct - 1;
 
 	tabbld_sscanf(line,
 		 "%s %s %d %d",
 		 name, ytype, &i, &j);
-	new->loc = i;
-	new->len = j;
-	new->name  = newcpy(name);
-	new->ytype = newcpy(ytype);
+	newregs->loc = i;
+	newregs->len = j;
+	newregs->name  = newcpy(name);
+	newregs->ytype = newcpy(ytype);
 }
 
 /*
@@ -339,7 +339,7 @@ buildReg(void)
 void
 buildOp(void)
 {
-	register opts *this;
+	register opts *curoper;
 	char optf[8], *p;
 	unsigned u;
 
@@ -355,19 +355,19 @@ buildOp(void)
 					return;
 				}
 			}
-			strcpy(thisGen, opc);
+			strcpy(curoperGen, opc);
 
 			if (odp) fprintf(odp, "%s %d 0!", opc, lineno);
 			if (odp) fprintf(odp, "\t\\fB%s\\fR\t\t%s\n",
 				 opc, comment);
 
-			EXPAND(op);
-			this = optab + curgen;
-			this->name = newcpy(opc);
-			this->fun = -1;
-			this->hash = -1;
-			this->gen = curgen; /* self pointing */
-			this->lineno = lineno;
+			EXPAND(op, opts);
+			curoper = optab + curgen;
+			curoper->name = newcpy(opc);
+			curoper->fun = -1;
+			curoper->hash = -1;
+			curoper->gen = curgen; /* self pointing */
+			curoper->lineno = lineno;
 		}
 		return;
 	}			
@@ -435,20 +435,18 @@ buildOp(void)
  * pick a random production. 
  * may retry if random production is wrong mode.
  */
-static int
-pickRand(this)
-register oper *this;
+static int pickRand(register oper *curoper)
 {
 	int i;
 	char c, *p, state, work[22];
 
-	if (bswitch && this->badct) {
-		p = this->badlist;
-		i = randl() % this->badct;
+	if (bswitch && curoper->badct) {
+		p = curoper->badlist;
+		i = randl() % curoper->badct;
 	}
 	else {
-		p = this->goodlist;
-		i = randl() % this->goodct;
+		p = curoper->goodlist;
+		i = randl() % curoper->goodct;
 	}
 
 	for (state = 0; (c = *p); p++) {
@@ -493,26 +491,26 @@ register oper *this;
 /*
  * Produce an operand. Returns 1 on success 0 for a wrong
  * production for a limited test. That is if we are testing
- * all small stuff this returns 0 is asked to produce %eax
+ * all small stuff curoper returns 0 is asked to produce %eax
  */
 static int produce(char *n)
 {
 	register int j;
-	register oper *this;
+	register oper *curoper;
 
 #ifdef TRACE
 	if (otp) fprintf(otp, "{%s}", n);
 #endif
 	for (j = 0; j < operct; j++) {
-		this = opertab + j;
+		curoper = opertab + j;
 
-		if (!strcmp(n, this->name)) {
-			if (lswitch && !(this->flag & X_LARGE))
+		if (!strcmp(n, curoper->name)) {
+			if (lswitch && !(curoper->flag & X_LARGE))
 				return (0);	/* fail */
-			if (sswitch && !(this->flag & X_SMALL))
+			if (sswitch && !(curoper->flag & X_SMALL))
 				return (0);	/* fail */
 
-			while (!pickRand(this))
+			while (!pickRand(curoper))
 				;
 			return (1);
 		}
@@ -531,14 +529,14 @@ static int produce(char *n)
 static void makeTst(char *n, int j)
 {
 	register funs *f;
-	register opts *this;
+	register opts *curoper;
 	register int i;
 
 
-	this = optab + j;
-	f = funtab + this->fun;
+	curoper = optab + j;
+	f = funtab + curoper->fun;
 
-	/* can we do this */
+	/* can we do curoper */
 	if (lswitch)	/* large only test */
 		for (i = 0; i < f->operands; i++)
 			if (!(opertab[(unsigned char)f->ap[i]].flag & X_LARGE))
@@ -575,9 +573,7 @@ static void makeTst(char *n, int j)
 /*
  * Produce Document lines.
  */
-void
-makeDoc(f)
-register funs *f;
+void makeDoc(register funs *f)
 {
 	int i;
 
@@ -585,7 +581,7 @@ register funs *f;
 	if (-1 == curgen)
 		fprintf(odp, "%s %d 2!", opc, lineno);
 	else
-		fprintf(odp, "%s %d 1!", thisGen, lineno);
+		fprintf(odp, "%s %d 1!", curoperGen, lineno);
 
 	if (optDoc & PFX_0F)
 		fprintf(odp, "0F ");
@@ -634,7 +630,7 @@ register funs *f;
  */
 void opBld(void)
 {
-	register opts *this;
+	register opts *curoper;
 	register funs *f = 0;  /* Pacify GCC about uninitialized variable. */
 	int i, j, k;
 
@@ -662,7 +658,7 @@ void opBld(void)
 		}
 
 	if (j == funct) {	/* not found build one */
-		EXPAND(fun);
+		EXPAND(fun, funs);
 		f = funtab + j;
 		f->name = newcpy(fname);
 		f->opt = opt;
@@ -674,24 +670,24 @@ void opBld(void)
 	}
 
 	i = opct;
-	EXPAND(op);
-	this = optab + i;
+	EXPAND(op, opts);
+	curoper = optab + i;
 
 	for (k = 0; k < i; k++) {
 		if (!strcmp(optab[k].name, opc)) {
-			this->name = optab[k].name;
+			curoper->name = optab[k].name;
 			break;
 		}
 	}
 
 	if (k == i)
-		this->name = newcpy(opc);
+		curoper->name = newcpy(opc);
 
-	this->fun = j;
-	this->opcode = opcode;
-	this->gen = curgen;
-	this->hash = -2;
-	this->lineno = lineno;
+	curoper->fun = j;
+	curoper->opcode = opcode;
+	curoper->gen = curgen;
+	curoper->hash = -2;
+	curoper->lineno = lineno;
 
 	if (!(opt & AMBIG_MATCH)) {
 		makeTst(opc, i);
@@ -760,7 +756,7 @@ int compr2(const void *vp1, const void *vp2)
  */
 void reorgData(void)
 {
-	register opts *this = 0;  /* Pacify GCC about uninitialized variable. */
+	register opts *curoper = 0;  /* Pacify GCC about uninitialized variable. */
 	register opts *that, *last;
 	char *p;
 	int i, j, k;
@@ -769,39 +765,39 @@ void reorgData(void)
 	qsort(optab, opct, sizeof(*optab), compr1);
 
 	for (i = 0; i < opct; i++) { /* scan opcodes */
-		this = optab + i;
+		curoper = optab + i;
 
-		this->len = k = strlen(this->name);
-		if (NULL == (p = strstr(allntab, this->name))) {
+		curoper->len = k = strlen(curoper->name);
+		if (NULL == (p = strstr(allntab, curoper->name))) {
 			/* if name not on list build */
 			j = allnct;
 			NEWN(alln, k);
-			strcpy(allntab + j, this->name);
+			strcpy(allntab + j, curoper->name);
 		}
 		else
 			j = p - allntab;
 
-		this->pt = j;
+		curoper->pt = j;
 	}
 
 	/* sort for creating prefTab */
 	qsort(optab, opct, sizeof(*optab), compr2);
 
 	for (last = optab, nameCt = i = 0; i < opct; i++) { /* scan opcodes */
-		this = optab + i;
-		this->lineno = -1;
-		this->count  = 0;
-		if (-1 == this->fun) { /* general name */
+		curoper = optab + i;
+		curoper->lineno = -1;
+		curoper->count  = 0;
+		if (-1 == curoper->fun) { /* general name */
 			/* scan for reference */
 			for (j = 0; j < opct; j++) {
 				that = optab + j;
 				if (-2 != that->hash ||
-				    this->gen != that->gen)
+				    curoper->gen != that->gen)
 					continue;
 				that->gen = i;	/* general ref marked */
 				that->hash = -1;
-				this->count++;
-				if (!strcmp(this->name, that->name))
+				curoper->count++;
+				if (!strcmp(curoper->name, that->name))
 					that->hash = -3; /* no unique name */
 			}
 		}
@@ -810,16 +806,16 @@ void reorgData(void)
 		 * count names and mark first name in seq
 		 * by leaving its pointer and count intact.
 		 */
-		if (strcmp(last->name, this->name)) {
+		if (strcmp(last->name, curoper->name)) {
 			if (!last->count)
-				last->count = this - last;
-			last = this;
+				last->count = curoper - last;
+			last = curoper;
 			nameCt++;
 		}
 		else
-			this->pt = this->len = 0;
+			curoper->pt = curoper->len = 0;
 	}
-	last->count = (this - last) + 1;
+	last->count = (curoper - last) + 1;
 }
 
 /*
@@ -827,7 +823,7 @@ void reorgData(void)
  */
 void outData(void)
 {
-	register opts *this, *that;
+	register opts *curoper, *that;
 	register funs *f;
 	regs *r;
 	char *p, work[22];
@@ -905,12 +901,12 @@ void outData(void)
 	 */
 	fprintf(ofp, "const opc prefTab[] = {\n");
 	for (lastp = i = 0; i < opct; i++) {
-		this = optab + i;
-		if (this->fun != -1)	/* non generic opcode */
+		curoper = optab + i;
+		if (curoper->fun != -1)	/* non generic opcode */
 			continue;
 
 		work[0] = '\0';
-		this->opcode = lastp;
+		curoper->opcode = lastp;
 
 		fputc('\n', ofp);
 		for (j = 0; j < opct; j++) {
@@ -937,17 +933,17 @@ void outData(void)
 
 	/* do non generic opcodes */
 	for (i = 0; i < opct; i++) {
-		this = optab + i;
+		curoper = optab + i;
 		/* regular first opcode */
-		if (this->fun != -1 && this->len) {
-			if (-1 != this->lineno) { /* matches end of generic */
-				this->opcode = this->lineno;
+		if (curoper->fun != -1 && curoper->len) {
+			if (-1 != curoper->lineno) { /* matches end of generic */
+				curoper->opcode = curoper->lineno;
 				continue;
 			}
 			k = lastp;	/* save lastp */
 			for (j = i; j < opct;) {
 				that = optab + j;
-				if (strcmp(this->name, that->name))
+				if (strcmp(curoper->name, that->name))
 					break;
 				if (-1 == that->fun) {
 					errors++;
@@ -964,7 +960,7 @@ void outData(void)
 					lastp);
 				lastp++;
 			}
-			this->opcode = k;
+			curoper->opcode = k;
 		}
 	}
 	fprintf(ofp, "};\n\n");
@@ -980,17 +976,17 @@ void outData(void)
 
 	/* mark all items that hash direct */
 	for (i = 0; i < opct; i++) {
-		this = optab + i;
+		curoper = optab + i;
 
-		this->hash = -2;
-		if (!this->len)
+		curoper->hash = -2;
+		if (!curoper->len)
 			continue;
-		memcpy(work, allntab + this->pt, this->len);
-		work[this->len] = '\0';
+		memcpy(work, allntab + curoper->pt, curoper->len);
+		work[curoper->len] = '\0';
 		j = hash(work) % nameCt;
 
 		if (htab[j] != -1) {	/* hole taken get it next pass */
-			this->hash = -1;
+			curoper->hash = -1;
 			continue;
 		}
 		htab[j] = i;	/* hash table points to entry */
@@ -998,8 +994,8 @@ void outData(void)
 
 	/* mark items that hash indirect */
 	for (i = 0; i < opct; i++) {
-		this = optab + i;
-		if (-1 != this->hash)	/* pass unmarked items */
+		curoper = optab + i;
+		if (-1 != curoper->hash)	/* pass unmarked items */
 			continue;
 
 		 /* find a hole */
@@ -1012,9 +1008,9 @@ void outData(void)
 		}
 		htab[k] = i;	/* hash table points to entry */
 
-		/* where does this hash to */
-		memcpy(work, allntab + this->pt, this->len);
-		work[this->len] = '\0';
+		/* where does curoper hash to */
+		memcpy(work, allntab + curoper->pt, curoper->len);
+		work[curoper->len] = '\0';
 		j = hash(work) % nameCt;
 
 		/* find the end of the chain */
@@ -1022,7 +1018,7 @@ void outData(void)
 			;
 
 		that->hash = k;
-		this->hash = -2;
+		curoper->hash = -2;
 	}
 
 	fprintf(ofp, "nhash hashCodes[] = {\n");
@@ -1034,16 +1030,16 @@ void outData(void)
 			fprintf(ofp, "\t{-1, 0, 0, 0, 0 }, /* JUNK */\n");
 			continue;
 		}
-		this = optab + j;
+		curoper = optab + j;
 
-		memcpy(work, allntab + this->pt, this->len);
-		work[this->len] = '\0';
+		memcpy(work, allntab + curoper->pt, curoper->len);
+		work[curoper->len] = '\0';
 		fprintf(ofp, "\t{%4d, %4d, %2d, %2d, %4d }%c /* %-12s %d */\n",
-			((this->hash < 0) ? -1 : this->hash),
-			this->pt,
-			this->len,
-			this->count,	/* entries on pref table */
-			this->opcode,	/* entry on pref table */
+			((curoper->hash < 0) ? -1 : curoper->hash),
+			curoper->pt,
+			curoper->len,
+			curoper->count,	/* entries on pref table */
+			curoper->opcode,	/* entry on pref table */
 			((i + 0U == nameCt) ? ' ' : ','),
 			work,
 			i - 1);
@@ -1133,14 +1129,14 @@ int main(int argc, char *argv[])
 	}
 			
 	/*
-	 * These are nessisary as long as this runs small model.
-	 * otherwise this thing runs out of space.
+	 * These are nessisary as long as curoper runs small model.
+	 * otherwise curoper thing runs out of space.
 	 */
-	START(op,  1000);
-	START(fun, 250);
-	START(oper, 100);
-	START(alln, 2000);
-	START(reg, 100);
+	START(op,  1000, opts);
+	START(fun, 250, funs);
+	START(oper, 100, oper);
+	START(alln, 2000, char);
+	START(reg, 100, regs);
 
 	otp = eswitch ? NULL : xopen("test.s", "w");
 	if (subtest) {
@@ -1188,7 +1184,7 @@ int main(int argc, char *argv[])
 						lineno, comment);
 				else
 					fprintf(odp, "%s %d 1!\t%s\n",
-						thisGen, lineno, comment);
+						curoperGen, lineno, comment);
 			}
 			continue;
 		}
