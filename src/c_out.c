@@ -509,7 +509,7 @@ register sym *sp;
 	else
 		strncpy(s._n._n_name, name, SYMNMLEN);
 
-	if (sp->sg < 0)
+	if (sp->sg <= 0 || !segs)  /* It is not 0 on normal COFF generation, but when an error is reported, it can be 0, thus causing the other end of the branch to segfault. */
 		s.n_scnum = sp->sg;
 	else
 		s.n_scnum = segs[sp->sg - 1].segSeq;
