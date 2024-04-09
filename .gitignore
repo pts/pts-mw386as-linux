@@ -9,3 +9,6 @@
 /ddk32.dd
 /Coherent Unix 4.2.10 (1994) (3.5-1.44mb).7z
 /mw386as
+/src/as
+/src/cdmp
+/src/tabbld
