@@ -112,13 +112,13 @@ outTo(int to, int s)
 		sTitle();
 
 	for (to += (' ' == s); (i = ((pos | 7) + 1)) <= to; pos = i)
-		putchar('\t');
+		fputc('\t', stdout);
 
 	for (; pos < to; pos++)
-		putchar(' ');
+		fputc(' ', stdout);
 
 	if (' ' != s)
-		putchar(s);
+		fputc(s, stdout);
 }
 
 /*
@@ -154,15 +154,15 @@ void outLine(char *p, char s)
 	outTo(STARTP, s);
 	for (; (c = *p++) && ('\n' != c); pos++) {
 		if (lineSize <= pos) {
-			putchar('\n');
+			fputc('\n', stdout);
 			pos = 0;
 			outTo(STARTP, '|');
 		}
 		if ('\t' == c)
 			pos |= 7;
-		putchar(c);
+		fputc(c, stdout);
 	}
-	putchar('\n');
+	fputc('\n', stdout);
 	pos = ct = 0;
 }
 
@@ -257,7 +257,7 @@ static void
 limiter(int n)
 {
 	if (lswitch && (ct + n) > LIMIT) {
-		putchar('\n');
+		fputc('\n', stdout);
 		ct = 0;
 	}
 }
@@ -292,7 +292,7 @@ unsigned short b;
 
 	if (!(ct % CMOD)) {
 		pos++;
-		putchar(' ');
+		fputc(' ', stdout);
 	}
 	printf("%02X", b & 255);
 	pos += 2;

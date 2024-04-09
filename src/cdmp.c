@@ -285,7 +285,7 @@ readSection(n) register int n;
 		printf("unrecognized section");
 		break;
 	}
-	putchar('\n');
+	fputc('\n', stdout);
 
 	/* print instructions */
 	if (iswitch && !strcmp(sh.s_name, ".text")) {
@@ -346,7 +346,7 @@ readSection(n) register int n;
 					re.r_type);
 				break;
 			}
-			putchar('\n');
+			fputc('\n', stdout);
 		}
 	}
 
@@ -401,19 +401,19 @@ readStrings()
 		fatal("error reading string table %"PRIx32" %d", ftell(fp), len);
 
 	for (str_ptr = (unsigned char*)str_tab; (char*)str_ptr < str_tab + str_length; ) {
-		putchar('\t');
+		fputc('\t', stdout);
 		while ((c = *str_ptr++)) {
 			if (c > '~') {
 				c &= 0x7f;
-				putchar('~');
+				fputc('~', stdout);
 			}
 			if (c < ' ') {
 				c |= '@';
-				putchar('^');
+				fputc('^', stdout);
 			}
-			putchar(c);
+			fputc(c, stdout);
 		}
-		putchar('\n');
+		fputc('\n', stdout);
 	}
 }
 
@@ -526,7 +526,7 @@ void print_aux(int n, register SYMENT *sep)
 			printf("\tdims=< ");
 			while (sp < &ae.ae_dimen[DIMNUM] && *sp)
 				printf("%d ", *sp++);
-			putchar('>');
+			fputc('>', stdout);
 		}
 	}
 
@@ -534,7 +534,7 @@ void print_aux(int n, register SYMENT *sep)
 	if ((l = ae.ae_tvndx))
 		printf("\ttv=%"PRId32"", l);
 
-	putchar('\n');
+	fputc('\n', stdout);
 }
 
 /*
@@ -547,20 +547,20 @@ print_sym(se, n) register SYMENT *se; c32_t n;
 	int eflag, derived;
 	
 	if (se->n_sclass == C_FILE && n > 0)
-		putchar('\n');			/* for readability */
+		fputc('\n', stdout);			/* for readability */
 	printf("%4"PRId32"   ", n);			/* index number */
 
 	eflag = 0;				/* no errors */
 	if (se->n_zeroes != 0) {		/* name in place */
 		for (i = 0; i < SYMNMLEN; i++) {
 			if ((' ' < (c = se->n_name[i])) && ('~' >= c))
-				putchar(c);
+				fputc(c, stdout);
 			else {
 				eflag = c;
 				break;
 			}
 		}
-		putchar('\t');
+		fputc('\t', stdout);
 	} else					/* name in string table */
 		printf("%s ", checkStr(str_tab + se->n_offset - 4));
 
@@ -586,7 +586,7 @@ print_sym(se, n) register SYMENT *se; c32_t n;
 	while (i & N_TMASK) {			/* derived type */
 		if (derived == 0) {
 			derived = 1;
-			putchar('<');
+			fputc('<', stdout);
 		}
 		switch(i & N_TMASK) {
 		cs(DT_PTR)
@@ -596,7 +596,7 @@ print_sym(se, n) register SYMENT *se; c32_t n;
 		default:
 			fatal("unexpected derived type 0x%x", i & N_TMASK);
 		}
-		putchar(' ');
+		fputc(' ', stdout);
 		i >>= N_TSHIFT;
 	}
 	switch (c = (se->n_type & N_BTMASK)) {	/* base type */
@@ -626,7 +626,7 @@ print_sym(se, n) register SYMENT *se; c32_t n;
 
 	}
 	if (derived)
-		putchar('>');
+		fputc('>', stdout);
 
 	/* Print the storage class. */
 	printf("\tclass=");
@@ -677,7 +677,7 @@ print_sym(se, n) register SYMENT *se; c32_t n;
 	if (se->n_numaux)
 		printf("\tnaux=%d", se->n_numaux);
 #endif
-	putchar('\n');
+	fputc('\n', stdout);
 
 	if (eflag) {
 		printf("*** Bad data in name **\n");
@@ -708,7 +708,7 @@ void dump(register char *buf, register int p)
 	/* Low hex digit. */
 	for (i = 0; i < p; i++)
 		outc(hex(buf[i]& 0x0f), i, '.');
-	putchar('\n');
+	fputc('\n', stdout);
 }
 
 /*
@@ -727,8 +727,8 @@ void
 outc(c, i, s) register int i, c, s;
 {
 	if ((i&3) == 0 && i != 0 )
-		putchar(s);
-	putchar(c);
+		fputc(s, stdout);
+	fputc(c, stdout);
 }
 
 /*

@@ -256,7 +256,7 @@ parm *p, *label;
 		if (lswitch && (2 == pass) && pswitch)
 			while (linect) {
 				sTitle();
-				putchar('\n');
+				fputc('\n', stdout);
 			}
 		break;
 
