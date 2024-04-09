@@ -4,11 +4,9 @@
 
 #include <string.h>
 
-char *alloc(unsigned n);
+char *alloc(size_t n);
 
-char *
-newcpy(s)
-register char *s;
+char *newcpy(register char *s)
 {
     if (NULL == s)
     	return (NULL);

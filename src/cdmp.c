@@ -25,7 +25,7 @@
 #include "coff.h"
 #include "intsize.h"
 
-char *alloc(unsigned n);
+char *alloc(size_t n);
 FILE *xopen(const char *fn, const char *acs);
 int getargs(int argc, char *argv[], char *optstring);
 

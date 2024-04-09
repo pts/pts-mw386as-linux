@@ -14,7 +14,7 @@
 
 char *newcpy(register char *s);
 i32_t randl(void);
-char *alloc(unsigned n);
+char *alloc(size_t n);
 extern char *as_optarg;
 int getargs(int argc, char * const argv[], const char *optstring);  /* getopt(3) would also work, but that's not C89. */
 unsigned short hash(register char *p);
