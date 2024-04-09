@@ -89,7 +89,8 @@ compliers, like this:
   provided by the script are good.
 
 * It is also straightforward to compile it on Windows or target Windows or
-  target other systems, but there are no instructions or scripts provided.
+  target other systems. A simple Makefile (`src/Makefile`) is provided as
+  a starting point.
 
 The source port is based on the [latest
 sources](https://github.com/gspu/Coherent/tree/master/mwc/romana/relic/b/bin/as)
