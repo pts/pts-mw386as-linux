@@ -10,6 +10,12 @@ similar to GNU as(1), and can generate a COFF object file. The assembler
 supports 16-bit and 32-bit mode, and it knows most Intel 386 instructions
 and addressing modes.
 
+The assembler is smart about memory usage: it only uses a small constant
+amount of memory for input and output files, and it only keeps symbols (i.e.
+labels) and macros in memory. It is also smart about optimizing jumps: it
+gerenates the shorter version of the jump in some cases (but not as smart as
+NASM).
+
 ## The binary ports
 
 Some of the ports in pts-mw386as-linux are direct Linux i386 ports of the
