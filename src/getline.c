@@ -1,7 +1,7 @@
 /*
  * Special Getline for tabbld. Keeps comments in char *comment.
  *
- * char * getline(ifp, lineno) FILE *ifp; int *lineno;
+ * char * as_getline(ifp, lineno) FILE *ifp; int *lineno;
  *
  * Function to get lines from an input file.
  * Returns the address of the line, or NULL for eof.
@@ -60,7 +60,7 @@ addcom(char c)
 }
 
 char *
-getline(ifp, lineno)
+as_getline(ifp, lineno)
 FILE *ifp;
 int *lineno;
 {
@@ -218,7 +218,7 @@ main()
 	char *got;
 
 	for (;;) {
-		if (NULL == (got = getline(stdin, &line)))
+		if (NULL == (got = as_getline(stdin, &line)))
 			exit(0);
 
 		if (*comment)

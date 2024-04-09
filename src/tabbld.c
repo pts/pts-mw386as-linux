@@ -19,7 +19,7 @@ extern char *as_optarg;
 int getargs(int argc, char * const argv[], const char *optstring);  /* getopt(3) would also work, but that's not C89. */
 unsigned short hash(register char *p);
 FILE *xopen(const char *fn, const char *acs);
-char *getline(FILE *ifp, int *lineno);
+char *as_getline(FILE *ifp, int *lineno);
 
 typedef struct opts opts;
 typedef struct funs funs;
@@ -88,7 +88,7 @@ short regct, reglen;
  && (NULL == (n##tab = realloc(n##tab, n##len += 10)))) \
 	outSpace(__LINE__)
 
-extern char *comment;	/* from getline() */
+extern char *comment;	/* from as_getline() */
 
 static FILE *ofp, *ohp, *otp, *odp;	/* output files */
 static char *line;	/* input line */
@@ -1144,7 +1144,7 @@ int main(int argc, char *argv[])
 	/*
 	 * Process file.
 	 */
-	while (NULL != (line = getline(stdin, &lineno))) {
+	while (NULL != (line = as_getline(stdin, &lineno))) {
 		switch (*line) {
 		case '+':
 			sscanf(line + 2, "%d", &state);
