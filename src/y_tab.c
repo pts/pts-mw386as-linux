@@ -7,7 +7,7 @@
 
 #define write(a, b, c) fputs(b, stderr)  /* Just for printing the stack overflow error. */
 
-void regerror(psym *rg);
+static void reg_error(psym *rg);
 int yylex(void);
 
 /*
@@ -84,7 +84,7 @@ sym *symRef;
 				break;
 			/* fallthrough */
 		case 1:
-			regerror(r1);
+			reg_error(r1);
 			break;
 		case 4:
 			lflags |= A_LONG;
@@ -92,11 +92,11 @@ sym *symRef;
 		}
 
 		if (ORD_REG != r1->flag)	/* cant ind via ctl regs */
-			regerror(r1);
+			reg_error(r1);
 
 		if (NULL != r2) {
 			if (ORD_REG != r2->flag)
-				regerror(r2);
+				reg_error(r2);
 			if (r1->size != r2->size)
 				yyerror("Mixed length addressing registers");
 		/* Addressing registers must both be the same length. */
@@ -165,7 +165,7 @@ i32_t regno;
 /*
  * Report register error.
  */
-void regerror(psym *rg)
+void reg_error(psym *rg)
 {
 	yyerror("%s is an improper register in this context", rg->name); /**/
 }
@@ -958,7 +958,7 @@ case 34: {
 
 		yyval.e = yypvt[0].e;
 		if (yypvt[-2].s->flag != SEG_REG)
-			regerror((psym*)yypvt[-2].s);
+			reg_error((psym*)yypvt[-2].s);
 		yyval.e->sg = yypvt[-2].s->loc; }break;
 
 case 35: {
