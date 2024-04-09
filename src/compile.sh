@@ -8,7 +8,7 @@
 # It uses `gcc' by default is the compiler. See README.md for using other compilers.
 #
 
-set -ex
+set -e  # Exit on error, but don't echo yet.
 
 MYDIR=.
 test "${0%/*}" = "$0" || MYDIR="${0%/*}"
@@ -50,6 +50,7 @@ case "$CCBASE" in
  *)  # Defaults for GCC and Clang.
   CEXTRA="-O2 -W -Wall -ansi -pedantic" ;;  # We don't want -Werror.
 esac
+set -x  # Echo commands run from now on.
 
 ( cd "$MYDIR" &&
   "$CC" $CEXTRA $@ -o tabbld$EXE $TABBLDC &&
