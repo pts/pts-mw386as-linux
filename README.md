@@ -53,7 +53,7 @@ COFF object files).
 The script will compile with GCC by default, but you can specify other
 compliers, like this:
 
-* `src/compile.sh` is the same as `./compile.sh gcc`.
+* `src/compile.sh` is the same as `src/compile.sh gcc`.
 
 * `src/compile.sh gcc` uses GCC as the compiler. You can also specify flags
   like `src/compile.sh gcc -std=c99 -Werror`. Instead of `gcc`, you can
