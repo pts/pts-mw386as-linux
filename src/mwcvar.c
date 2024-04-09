@@ -7,8 +7,13 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "asm.h"
+
+#ifdef __MINILIBC686__
+#  define strerror strerror_few  /* Store only the few most common error messages in the executable, the rest will be reported as "?". */
+#endif
 
 /*
  * Show line numbers if no listing.
@@ -36,8 +41,11 @@ void fatal(const char *fmt, ...) {
 	vfprintf(errdev, fmt, ap);
 	fputs("\n", errdev);
 
-	if (0 != (errno = save))
-		perror("errno reports");
+	if (0 != save) {
+		fputs("errno reports: ", stderr);
+		fputs(strerror(save), stderr);
+		fputs("\n", stderr);
+	}
 
 	exit(1);
 }

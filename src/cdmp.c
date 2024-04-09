@@ -74,6 +74,10 @@ char	*str_tab;		/* String char array			*/
 c32_t	symptr;			/* File pointer to symbol table entries	*/
 char	xswitch;		/* Dump aux entries in hex		*/
 
+#ifdef __MINILIBC686__
+#  define strerror strerror_few  /* Store only the few most common error messages in the executable, the rest will be reported as "?". */
+#endif
+
 /*
  * Print fatal error message and die.
  */
@@ -88,8 +92,11 @@ void fatal(const char *fmt, ...)
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	fputs("\n", stderr);
-	if (0 != (errno = save))
-		perror("errno reports");
+	if (0 != save) {
+		fputs("errno reports: ", stderr);
+		fputs(strerror(save), stderr);
+		fputs("\n", stderr);
+	}
 	exit(1);
 }
 
