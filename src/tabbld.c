@@ -311,7 +311,7 @@ buildOp(void)
 {
 	register opts *this;
 	char optf[8], *p;
-	int i;
+	unsigned u;
 
 	optDoc = opc[0] = op1[0] = op2[0] = op3[0] = '\0';
 	sscanf(line, "%s %s", optf, opc);
@@ -345,8 +345,8 @@ buildOp(void)
 	if (!opc[0])
 		error("Null name");
 
-	sscanf(line, "%s %x %s %s %s %s", optf, &i, opc, op1, op2, op3);
-	opcode = i;
+	sscanf(line, "%s %x %s %s %s %s", optf, &u, opc, op1, op2, op3);
+	opcode = u;
 
 	for (p = optf; ; p++) {
 		switch(*p) {
