@@ -286,7 +286,7 @@ getLine()
 				exit(1);
 			}
 			else {	/* avoid close & open */
-				rewind(inpc->fp);
+				(void)!fseek(inpc->fp, 0, SEEK_SET);  /* rewind(inpc->fp); */
 				inpc->lineNo = 0;
 				statement = 1;
 
