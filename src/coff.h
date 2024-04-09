@@ -187,7 +187,7 @@ typedef	struct	syment	{
 	c32_t		n_value COFF_PACKED;		/* Value		*/
 	short		n_scnum;		/* Section number	*/
 	unsigned short	n_type;			/* Type			*/
-	char		n_sclass;		/* Storage class	*/
+	signed char	n_sclass;		/* Storage class	*/
 	char		n_numaux;		/* Auxilliary entries	*/
 #ifdef COFF_PACKED_PRAGMA
 #pragma align 2

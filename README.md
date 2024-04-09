@@ -112,8 +112,11 @@ The source port makes the following changes:
   compiles witha C89 libc only.
 * It adds the necessary portability changes for 64-bit systems (such as
   amd64).
+* It makes the program work either if char is signed or unsigned.
 * It fixes tons of C compiler warnings. (There shouldn't be any more left.)
 * It fixes some bugs (but the fixes don't change the output object file.)
+* It makes the program compile in C++98 (this is not finished yet) as well
+  as C89.
 * It adds general portability improvements for more C compilers and systems.
 
 ## How to use the assembler

@@ -28,7 +28,7 @@ void coffVal(data *item);
 void coffLn(i32_t n);
 void coffLine(i32_t n);
 void coffSize(i32_t n);
-void coffScl(i32_t n);
+void coffScl(signed char n);
 void coffDim(i32_t n, int d);
 void outLine(char *p, char s);
 void outab(unsigned short b);

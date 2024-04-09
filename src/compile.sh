@@ -28,6 +28,7 @@ IS_CROSS=  # If non-empty, then we do cross-compilation.
 if test "$1" = --cross; then IS_CROSS=1; shift; fi
 case "$CCBASE" in
  *tcc* | *tinycc*)  # TinyCC: https://bellard.org/tcc/
+  # It works with both -fsigned-char (default) and -funsigned-char in $@.
   CEXTRA="-O2 -W -Wall"
   if test "$CC" = miniutcc; then  # https://github.com/pts/minilibc686/blob/master/tools/miniutcc single-file precompiled for Linux i386, no #include.
     type "$CC" >/dev/null 2>&1 || CC=../tools/miniutcc
@@ -36,7 +37,8 @@ case "$CCBASE" in
   ;;
  *owcc*)  # OpenWatcom (https://github.com/open-watcom/open-watcom-v2) targeting Linux i386 or Win32, running on Linux i386 or amd64.
   test "$WATCOM"
-  CEXTRA="-fsigned-char -O2 -W -Wall -std=c89 -Wno-n308"  # We don't want -Werror.
+  # It works with both -fsigned-char and -funsigned-char (default) in $@.
+  CEXTRA="-O2 -W -Wall -std=c89 -Wno-n308"  # We don't want -Werror. Specifying -signed-char here would ignore the override in $@.
   for ARG in "$@"; do
     test "$ARG" = -bwin32 && EXE=.exe
   done
@@ -48,6 +50,7 @@ case "$CCBASE" in
   fi
   ;;
  *)  # Defaults for GCC and Clang.
+  # It works with both -fsigned-char (GCC and Clang default) and -funsigned-char in $@.
   CEXTRA="-O2 -W -Wall -ansi -pedantic" ;;  # We don't want -Werror.
 esac
 set -x  # Echo commands run from now on.

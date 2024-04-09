@@ -44,7 +44,7 @@ dodefs()
 		return;
 
 	optix = 1;	/* reset getargs */
-	while (EOF != (c = getargs(savArgc, savArgv, swChars))) {
+	while ((char)EOF != (c = getargs(savArgc, savArgv, swChars))) {
 		switch(c) {
 		case 'D':
 		case 'E':
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 	savArgc = argc;
 
 	fileName = NULL;
-	while (EOF != (c = getargs(argc, argv, swChars))) {
+	while ((char)EOF != (c = getargs(argc, argv, swChars))) {
 		switch(c) {
 		case 0:
 			if (NULL != fileName)	/* one time only */

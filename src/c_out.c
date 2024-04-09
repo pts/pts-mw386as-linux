@@ -82,7 +82,7 @@ struct xsym {	/* Symbol for debugging becomes SYMENT and maybe auxent */
 	int	value;
 	short	scnum;
 	short	type;
-	char	sclass;
+	signed char	sclass;
 	char	numaux;
 	AUXENT	aux;	/* aux record data */
 	char	*name;	/* name if there is one */
@@ -1002,7 +1002,7 @@ void coffVal(data *item)
 #endif
 }
 
-void coffScl(i32_t n)
+void coffScl(signed char n)
 {
 #ifdef NODEBUG
 	return;
