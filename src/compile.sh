@@ -51,6 +51,8 @@ case "$CCBASE" in
     set x -I"$WATCOM/lh" -blinux -march=i386 "$@"; shift
   fi
   ;;
+ *minicc*)  # https://github.com/pts/minilibc686
+  CEXTRA="--gcc=4.8 -march=i386 -W -Wall -ansi -pedantic" ;;  # TODO(pts): `--wcc -Wno-n308' generates a bit larger code.
  *)  # Defaults for GCC and Clang.
   # It works with both -fsigned-char (GCC and Clang default) and -funsigned-char in $@.
   CEXTRA="-O2 -W -Wall -ansi -pedantic" ;;  # We don't want -Werror.

@@ -77,6 +77,12 @@ compliers, like this:
   files, libc, assembler or linker is not necessary. It generates
   statically linked Linux i386 executables.
 
+* `src/compile.sh minicc` uses the *minicc* toolchain and the
+  [minilibc686](https://github.com/pts/minilibc686) C library (optimized for
+  code size), targeting Linux i386. By default it uses GCC 4.8 as the C
+  compiler. This is the option which generates the smallest *as* executable
+  on Linux i386.
+
 * `src/compile.sh owcc` uses the
   [OpenWatcom](https://github.com/open-watcom/open-watcom-v2) C compiler and
   targets Linux i386. It generates a statically linked ELF-32 executable.
