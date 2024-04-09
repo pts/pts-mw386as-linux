@@ -11,6 +11,8 @@
 / Link with: perl -x fixcoff.pl hellol.o && ld -m elf_i386 -o hellol hellol.o
 /
 
+/ .org 0x400000  / This will make the .o file this many NUL bytes longer in the beginning. This is not the right way to specify the vaddr.
+
 do_msg2:
 	mov $4, %eax  / SYS_write.
 	mov $1, %ebx  / STDOUT_FILENO.
