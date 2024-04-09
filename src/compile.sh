@@ -5,7 +5,7 @@
 #
 # Usage: ./compile.sh [<compiler-command> [<compiler-flag> ...]]
 #
-# It uses `gcc' by default is the compiler
+# It uses `gcc' by default is the compiler. See README.md for using other compilers.
 #
 
 set -ex

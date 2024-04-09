@@ -48,13 +48,39 @@ Williams 80386 assembler to C89 (ANSI C). It's in the directory `src/`. To
 compile it on a Unix system (e.g. Linux or macOS), install a C compiler, and
 run the script `src/compile.sh`. The output executables are `src/as`
 (assembler) and `src/cdmp` (with similar purpose as GNU objdump(1), but for
-COFF object files). The script will compile with GCC by default, but you can
-make it use Clang instead (e.g. with `src/compile.sh clang`). The script
-also supports compiling the assembler using
-[OpenWatcom](https://github.com/open-watcom/open-watcom-v2) or
-[TinyCC](https://bellard.org/tcc/). It is also straightforward to compile it
-on Windows or target Windows, but there are no instructions or scripts
-provided.
+COFF object files).
+
+The script will compile with GCC by default, but you can specify other
+compliers, like this:
+
+* `src/compile.sh` is the same as `./compile.sh gcc`.
+
+* `src/compile.sh gcc` uses GCC as the compiler. You can also specify flags
+  like `src/compile.sh gcc -std=c99 -Werror`. Instead of `gcc`, you can
+  specify any GCC command installed, e.g. `src/compile.sh gcc-7`. You can
+  also specify `--cross` right after `gcc` to enable cross-compilation. That
+  will prevent the rebuilding of *symtab.c*.
+
+* `src/compile.sh clang` uses Clang as the compiler, otherwise it's similar
+  to `src/compile.sh gcc`.
+
+* `src/compile.sh tcc` uses [TinyCC](https://bellard.org/tcc/) as the
+  compiler. The script adds different warning flags (e.g. no `-ansi`) than
+  for GCC, but otherwise it's similar to `src/compile.sh gcc`.
+
+* `src/compile.sh owcc` uses the
+  [OpenWatcom](https://github.com/open-watcom/open-watcom-v2) C compiler and
+  targets Linux i386. It generates a statically linked ELF-32 executable.
+
+* `src/compile.sh owcc -bwin32` uses the OpenWatcom C compiler and targets
+  Win32 (Windows i386). The generated *as.exe* uses only kernel32.dll and
+  nothing else (e.g. no user32.dll or msvcrt.dll).
+
+* Usually there is no need to specify extra compiler flags, the defaults
+  provided by the script are good.
+
+* It is also straightforward to compile it on Windows or target Windows or
+  target other systems, but there are no instructions or scripts provided.
 
 The source port is based on the [latest
 sources](https://github.com/gspu/Coherent/tree/master/mwc/romana/relic/b/bin/as)
