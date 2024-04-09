@@ -1,6 +1,8 @@
+#include "intsize.h"
+
 /* fake version of ldiv() */
-typedef struct ldiv_t { long quot, rem; } ldiv_t;
-ldiv_t ldiv(numer, denom) long numer, denom;
+typedef struct ldiv_t { i32_t quot, rem; } ldiv_t;
+ldiv_t ldiv(numer, denom) i32_t numer, denom;
 {
 	ldiv_t l;
 	l.quot = numer / denom;
@@ -19,31 +21,33 @@ ldiv_t ldiv(numer, denom) long numer, denom;
 /* of a 32 bit number divided by a 16 bit number, and */
 /* mulitplies return a 32 bit product of two 16 bit */
 /* factors.  The ANSI portable implementation is less than */
-/* optimal, since it must be implemented using long arithmetic, */
+/* optimal, since it must be implemented using i32_t arithmetic, */
 /* but at least the algorithm can be specified. */
 
-static long s1 = 1;
-static long s2 = 1;
+static i32_t s1 = 1;
+static i32_t s2 = 1;
 
-void srandl(seed1, seed2) unsigned long seed1, seed2;
+#if 0  /* Unused. */
+void srandl(seed1, seed2) u32_t seed1, seed2;
 {
-	s1 = seed1 % 2147483562L + 1;
-	s2 = seed2 % 2147483398L + 1;
+	s1 = seed1 % (i32_t)2147483562L + 1;
+	s2 = seed2 % (i32_t)2147483398L + 1;
 }
+#endif
 
 /* uniform distribution in [1 .. 2147483562] */
-long randl()
+i32_t randl()
 {
 	ldiv_t l;
-	register long t;
+	register i32_t t;
 
-	l = ldiv(s1, 53668L);
-	if ((s1 = 40014L * l.rem - 12211 * l.quot) < 0)
-		s1 += 2147483563L;
-	l = ldiv(s2, 52774L);
-	if ((s2 = 40692L * l.rem - 3791 * l.quot) < 0)
-		s2 += 2147483399L;
+	l = ldiv(s1, (i32_t)53668L);
+	if ((s1 = (i32_t)40014L * l.rem - 12211 * l.quot) < 0)
+		s1 += (i32_t)2147483563L;
+	l = ldiv(s2, (i32_t)52774L);
+	if ((s2 = (i32_t)40692L * l.rem - 3791 * l.quot) < 0)
+		s2 += (i32_t)2147483399L;
 	if ((t = s1 - s2) < 1)
-		t += 2147483562L;
+		t += (i32_t)2147483562L;
 	return t-1;
 }

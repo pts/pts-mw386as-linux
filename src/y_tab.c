@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "asm.h"
+#include "intsize.h"
 
 #define write(a, b, c) fputs(b, stderr)  /* Just for printing the stack overflow error. */
 
@@ -43,7 +44,7 @@ sym *s1, *s2;
  */
 static expr *
 setImm(val, symRef)
-long val;
+i32_t val;
 sym  *symRef;
 {
 	register expr *oper;
@@ -66,10 +67,10 @@ sym  *symRef;
  */
 static expr *
 qbild(val, mode, r1, r2, scale, symRef)
-long val;
+i32_t val;
 int mode;
 psym *r1, *r2;
-long scale;
+i32_t scale;
 sym *symRef;
 {
 	register expr *oper;
@@ -146,7 +147,7 @@ sym *symRef;
  */
 static expr *
 fbild(regno)
-long regno;
+i32_t regno;
 {
 	register expr *oper;
 
@@ -176,11 +177,11 @@ static char *
 concat(s1, s2)
 char *s1, *s2;
 {
-	long l;
+	i32_t l;
 	unsigned short u;
 	char *res;
 
-	u = l = (long)strlen(s1) + (long)strlen(s2) + 1;
+	u = l = (i32_t)strlen(s1) + (i32_t)strlen(s2) + 1;
 	if(u != l) {
 		yyerror("Length %ld string range exceeded", l);
 		/* Strings may not exceed 32 kilobytes. */
@@ -198,7 +199,7 @@ char *s1, *s2;
 static char *
 substr(s, from, len)
 char *s;
-long from, len;
+i32_t from, len;
 {
 	register char *p, *res;
 	unsigned short l;
@@ -232,14 +233,14 @@ char *s1, *s2;
 }
 
 /*
- * Do long comparisons.
+ * Do i32_t comparisons.
  * < > <= >= != ==  compare operator
  * 1 2  5  6  3  4  t
  */
 static
 int compare(t, v)
 int t;
-long v;
+i32_t v;
 {
 	return(((v < 0) ? t : (v > 0) ? (t >> 1) : (t >> 2)) & 1);
 }
@@ -1118,7 +1119,7 @@ case 66: {
 case 67: {
 
 
-		yyval.val = compare((int)yypvt[-1].val, (long)strcmp(yypvt[-2].t, yypvt[0].t)); }break;
+		yyval.val = compare((int)yypvt[-1].val, (i32_t)strcmp(yypvt[-2].t, yypvt[0].t)); }break;
 
 case 68: {
 
@@ -1269,7 +1270,7 @@ case 97: {
 
 
 		yyval.t = galloc(12);
-		sprintf(yyval.t, "%ld", yypvt[0].val); }break;
+		sprintf(yyval.t, "%"PRId32"", yypvt[0].val); }break;
 
 case 98: {
 

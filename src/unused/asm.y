@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "asm.h"
+#include "intsize.h"
 
 #define write(a, b, c) fputs(b, stderr)  /* Just for printing the stack overflow error. */
 
@@ -45,7 +46,7 @@ sym *s1, *s2;
  */
 static expr *
 setImm(val, symRef)
-long val;
+i32_t val;
 sym  *symRef;
 {
 	register expr *oper;
@@ -68,10 +69,10 @@ sym  *symRef;
  */
 static expr *
 qbild(val, mode, r1, r2, scale, symRef)
-long val;
+i32_t val;
 int mode;
 psym *r1, *r2;
-long scale;
+i32_t scale;
 sym *symRef;
 {
 	register expr *oper;
@@ -148,7 +149,7 @@ sym *symRef;
  */
 static expr *
 fbild(regno)
-long regno;
+i32_t regno;
 {
 	register expr *oper;
 
@@ -178,11 +179,11 @@ static char *
 concat(s1, s2)
 char *s1, *s2;
 {
-	long l;
+	i32_t l;
 	unsigned short u;
 	char *res;
 
-	u = l = (long)strlen(s1) + (long)strlen(s2) + 1;
+	u = l = (i32_t)strlen(s1) + (i32_t)strlen(s2) + 1;
 	if(u != l) {
 		yyerror("Length %ld string range exceeded", l);
 		/* Strings may not exceed 32 kilobytes. */
@@ -200,7 +201,7 @@ char *s1, *s2;
 static char *
 substr(s, from, len)
 char *s;
-long from, len;
+i32_t from, len;
 {
 	register char *p, *res;
 	unsigned short l;
@@ -234,14 +235,14 @@ char *s1, *s2;
 }
 
 /*
- * Do long comparisons.
+ * Do i32_t comparisons.
  * < > <= >= != ==  compare operator
  * 1 2  5  6  3  4  t
  */
 static
 int compare(t, v)
 int t;
-long v;
+i32_t v;
 {
 	return(((v < 0) ? t : (v > 0) ? (t >> 1) : (t >> 2)) & 1);
 }
@@ -268,7 +269,7 @@ unmatched(int c)
 
 %}
 %union {
-	long	val;	/* numeric value */
+	i32_t	val;	/* numeric value */
 	double  dbl;
 	sym	*s;	/* name size loc bitd bitl flag */
 	const opc	*o;	/* opcode kind */
@@ -544,7 +545,7 @@ numexp	: NUMBER {
 	| numexp COMPARISON numexp {
 		$$ = compare((int)$2, $1 - $3); }
 	| string COMPARISON string {
-		$$ = compare((int)$2, (long)strcmp($1, $3)); }
+		$$ = compare((int)$2, (i32_t)strcmp($1, $3)); }
 	| dblexp COMPARISON dblexp {
 		$$ = fcompare((int)$2, $1 - $3); }
 
@@ -615,7 +616,7 @@ string	: TOKEN {
 		$$ = substr($1, $3, strlen($1) - $3); }
 	| TOSTRING numexp {
 		$$ = galloc(12);
-		sprintf($$, "%ld", $2); }
+		sprintf($$, "%"PRId32"", $2); }
 	| TOSTRING dblexp {
 		$$ = galloc(20);
 		sprintf($$, "%g", $2); };

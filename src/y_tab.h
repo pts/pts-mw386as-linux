@@ -1,7 +1,5 @@
-
-#line 259 "asm.y"
 typedef union {
-	long	val;	/* numeric value */
+	i32_t	val;	/* numeric value */
 	double  dbl;
 	sym	*s;	/* name size loc bitd bitl flag */
 	const opc	*o;	/* opcode kind */

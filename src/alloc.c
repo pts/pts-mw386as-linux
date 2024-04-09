@@ -7,10 +7,7 @@
 
 void fatal(const char *fmt, ...);
 
-char *
-alloc(n)
-unsigned n;
-{
+char *alloc(size_t n) {
 	char	*tmp;
 
 	if (NULL == (tmp = malloc(n)))

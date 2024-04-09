@@ -13,26 +13,27 @@
 #include <string.h>
 
 #include "asm.h"
+#include "intsize.h"
 #include "symtab.h"
 
-void comm(const opc *op, parm *p, long n);
+void comm(const opc *op, parm *p, i32_t n);
 void cmnt(const opc *op, parm *p);
 void doOrg(parm *label, data *oper);
 void coffDef(parm *s);
 void coffTag(parm *p);
 void coffFile(parm *s);
 void coffEndef(void);
-void coffType(long n);
+void coffType(i32_t n);
 void coffVal(data *item);
-void coffLn(long n);
-void coffLine(long n);
-void coffSize(long n);
-void coffScl(long n);
-void coffDim(long n, int d);
+void coffLn(i32_t n);
+void coffLine(i32_t n);
+void coffSize(i32_t n);
+void coffScl(i32_t n);
+void coffDim(i32_t n, int d);
 void outLine(char *p, char s);
 void outab(unsigned short b);
 void outaw(unsigned short u);
-void outal(long ul);
+void outal(i32_t ul);
 void outrb(expr *oper, int sw);
 void outrw(expr *oper, int sw);
 void outrl(expr *oper, int sw);
@@ -75,7 +76,7 @@ setUpWhile()
  */
 void ecmd(parm *label, const opc *op, parm *p, data *item)
 {
-	long n = 0;
+	i32_t n = 0;
 
 	labelIgnored(label);
 
@@ -239,7 +240,7 @@ parm *p, *label;
 		break;
 
 	case S_LMODE:
-		longMode = op->code;
+		wideMode = op->code;
 		break;
 
 	case S_LIST:
@@ -356,7 +357,7 @@ parm *label;
 const opc *op;
 data *item;
 {
-	long n = 0;  /* Pacify GCC about unitinitialized variable. */
+	i32_t n = 0;  /* Pacify GCC about unitinitialized variable. */
 	data oper;
 
 	switch (item->type) {
@@ -480,7 +481,7 @@ data *oper;
 {
 	register char *str, c;
 	union {
-		long l[2];
+		i32_t l[2];
 		float f[2];
 		double d;
 	} u;
@@ -543,7 +544,7 @@ data *oper;
 				outal(oper->d.l);
 				break;
 			case 'd':
-				outal((long)oper->d.d);
+				outal((i32_t)oper->d.d);
 				break;
 			}
 			break;
@@ -630,7 +631,7 @@ data *oper;
 {
 	register sym *sp = NULL;
 	register sym *y;
-	long start, n;
+	i32_t start, n;
 	char b = 0, s = 0;  /* Pacify GCC about uninitialized variables. */
 
 	switch (op->kind) {

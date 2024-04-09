@@ -3,10 +3,12 @@
  */
 #include <stdio.h>
 
+#include "intsize.h"
+
 #define new(s) ((s *)alloc(sizeof(s)))
 #define gnew(s) ((s *)galloc(sizeof(s)))
 #define clear(x) memset((char *)(x), 0, sizeof(*(x)))
-#define offset(st, memb) ((unsigned)(((st *)0)->memb))
+#define offset(st, memb) ((size_t)(((st *)0)->memb))
 
 typedef struct expr expr;	/* generated address stuff */
 typedef struct inpctl inpctl;	/* include level of control */
@@ -25,12 +27,12 @@ typedef struct symdef symdef;	/* defined in c_out.c uses SYMENT & AUXENT */
 struct expr {	/* generated 80386 address stuff */
 	expr *next;
 	char mode;	/* mode byte */
-	long exp;	/* displacment */
+	i32_t exp;	/* displacment */
 	short sg;	/* segment override */
 	psym *r1;	/* first register */
 	psym *r2;	/* second register */
 	char scale;	/* scaling factor */
-	long size;	/* size of target */
+	i32_t size;	/* size of target */
 	sym	*ref;	/* pointer to associated symbol */
 };
 
@@ -70,8 +72,8 @@ struct nhash {	/* name hash entry */
 struct psym {	/* predefined symbol table entry */
 	psym	*next;			/* same symbol with same hash */
 	short	type;			/* yacc type or coff debug type */
-	long	loc;			/* location of coff debug value */
-	long	size;			/* length */
+	i32_t	loc;			/* location of coff debug value */
+	i32_t	size;			/* length */
 	short	sg;			/* segment plus 1 */
 	short	flag;			/* flag bits */
 	sym 	*ref;			/* base copy of this symbol on symtab */
@@ -83,8 +85,8 @@ struct psym {	/* predefined symbol table entry */
 struct sym {	/* allocated symbol table entry */
 	psym	*next;			/* same symbol with same hash */
 	short	type;			/* yacc type */
-	long	loc;			/* location */
-	long	size;			/* length */
+	i32_t	loc;			/* location */
+	i32_t	size;			/* length */
 	short	sg;			/* segment plus 1 */
 	short	flag;			/* flag bits */
 	sym 	*ref;			/* base copy of this symbol on symtab */
@@ -183,7 +185,7 @@ struct data {	/* misc data item */
 	unsigned short count;	/* repeat count */
 	union d {
 		double	d;	/* double data */
-		long	l;	/* long data */
+		i32_t	l;	/* i32_t data */
 		sym	*y;	/* pointer to original symbol */
 		char	*s;	/* pointer to string */
 	} d;
@@ -191,9 +193,9 @@ struct data {	/* misc data item */
 
 /* bits for lflags */
 #define A_SHORT 1	/* Uses short address */
-#define A_LONG  2	/* Uses long address */
+#define A_LONG  2	/* Uses i32_t address */
 #define O_SHORT 4	/* Uses short operand */
-#define O_LONG  8	/* Uses long operand */
+#define O_LONG  8	/* Uses i32_t operand */
 #define A_INDIR 16	/* Uses indirect operand */
 
 /*

@@ -10,6 +10,7 @@
 #include "utype.h"
 #include "asm.h"
 #include "asflags.h"
+#include "intsize.h"
 #include "y_tab.h"
 #include "symtab.h"
 
@@ -78,7 +79,7 @@ static char *backOff;	/* start of decimal number */
 static char fromMac = ' ';		/* ' ' or '+' */
 static short opIx;	/* index of current opcode */
 static int psw = 0;
-static long number = 0;
+static i32_t number = 0;
 static char token[1024], *tp;
 
 static int lastChar;	/* last Character in */

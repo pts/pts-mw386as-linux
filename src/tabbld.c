@@ -8,11 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "utype.h"
 #include "asflags.h"
+#include "intsize.h"
+#include "utype.h"
 
 char *newcpy(register char *s);
-long randl(void);
+i32_t randl(void);
 char *alloc(unsigned n);
 extern char *optarg;
 int getargs(int argc, char * const argv[], const char *optstring);  /* getopt(3) would also work, but that's not C89. */
@@ -97,7 +98,7 @@ static int curgen;	/* index to current general name */
 static unsigned nameCt;	/* name count */
 static int lastp;	/* last entry on prefTab */
 static short ct, opcode, opt;
-static unsigned long optDoc;
+static u32_t optDoc;
 static char fname[22], opc[22], op1[22], op2[22], op3[22], cmd[22], yt[22];
 static char thisGen[22];
 static int errors;		/* error count */
@@ -694,7 +695,7 @@ int compr1(const void *vp1, const void *vp2)
 	register int i;
 	register const opts *p1 = (const opts*)vp1, *p2 = (const opts*)vp2;
 
-	/* long names then short */
+	/* i32_t names then short */
 	if ((i = strlen(p2->name) - strlen(p1->name)))
 		return (i);
 
@@ -813,6 +814,7 @@ void outData(void)
 	fprintf(ofp, " */\n");
 	fprintf(ofp, "#include <stdio.h>\n\n");
 	fprintf(ofp, "#include \"asm.h\"\n");
+	fprintf(ofp, "#include \"intsize.h\"\n");
 	fprintf(ofp, "#include \"y_tab.h\"\n");
 	fprintf(ofp, "#include \"symtab.h\"\n\n");
 

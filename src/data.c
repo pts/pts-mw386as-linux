@@ -2,9 +2,10 @@
  * 80386 assembler common data
  */
 #include "asm.h"
+#include "intsize.h"
 
 #ifdef GEM
-long _stksize = 4096;
+i32_t _stksize = 4096;
 #endif
 short errCt;		/* count of errors */
 short kind;		/* the op->kind of current opcode */
@@ -41,7 +42,7 @@ macctl *logic;		/* logical level of control */
 macline *lastDef;	/* last macro line defined */
 short macNo;		/* macro expansion number */
 short defCt;		/* number of defines */
-short longMode = 1;	/* 1 = 80386 mode, 0 = 80286 mode */
+short wideMode = 1;	/* 1 = 80386 mode, 0 = 80286 mode */
 unsigned lflags;	/* is it long mode or not */
 char *outName;		/* name of output file */
 char lswitchX;		/* storage for lswitch from -l */
@@ -53,5 +54,5 @@ short pcnt, bcnt;	/* count op parens and brackets + left - right */
 short choices;		/* Number of ways to do this opcode */
 char xpass;		/* set if a branch changes size */
 
-long showSym;		/* location of clobbered symbol */
+i32_t showSym;		/* location of clobbered symbol */
 FILE *errdev;		/* Where to put out errors */

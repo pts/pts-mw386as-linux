@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 
 	/* get ctime without \n */
 	{
-		long t;
+		time_t t;
 
 		time(&t);
 		dTime = ctime(&t);

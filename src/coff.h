@@ -29,13 +29,17 @@
 #  endif
 #endif
 
+#include "intsize.h"
+typedef i32_t c32_t;
+typedef char assert_c32_t_size[sizeof(c32_t) == 4 ? 1 : -1];
+
 /* File header. */
 typedef	struct	filehdr	{
 	unsigned short	f_magic;		/* Magic number		*/
 	unsigned short	f_nscns;		/* Number of sections	*/
-	long		f_timdat;		/* Time and date	*/
-	long		f_symptr;		/* Seek to symbol table	*/
-	long		f_nsyms;		/* Number of symbols	*/
+	c32_t		f_timdat;		/* Time and date	*/
+	c32_t		f_symptr;		/* Seek to symbol table	*/
+	c32_t		f_nsyms;		/* Number of symbols	*/
 	unsigned short	f_opthdr;		/* Optional header size	*/
 	unsigned short	f_flags;		/* Flags		*/
 }	FILEHDR;
@@ -57,12 +61,12 @@ typedef	struct	filehdr	{
 typedef struct aouthdr	{
 	short		magic;			/* AOUT_MAGIC		*/
 	short		vstamp;			/* Version stamp	*/
-	long		tsize;			/* .text size in bytes	*/
-	long		dsize;			/* .data size in bytes	*/
-	long		bsize;			/* .bss  size in bytes	*/
-	long		entry;			/* Entry point		*/
-	long		text_start;		/* Base of .text data	*/
-	long		data_start;		/* Base of .data data	*/
+	c32_t		tsize;			/* .text size in bytes	*/
+	c32_t		dsize;			/* .data size in bytes	*/
+	c32_t		bsize;			/* .bss  size in bytes	*/
+	c32_t		entry;			/* Entry point		*/
+	c32_t		text_start;		/* Base of .text data	*/
+	c32_t		data_start;		/* Base of .data data	*/
 } AOUTHDR;
 
 /* Magic numbers for aouthdr.magic;  COHERENT only supports Z_MAGIC. */
@@ -74,15 +78,15 @@ typedef struct aouthdr	{
 /* Section header. */
 typedef	struct	scnhdr	{
 	char		s_name[8];		/* Section name		*/
-	long		s_paddr;		/* Physical address	*/
-	long		s_vaddr;		/* Virtual address	*/
-	long		s_size;			/* Size			*/
-	long		s_scnptr;		/* Data pointer		*/
-	long		s_relptr;		/* Reloc pointer	*/
-	long		s_lnnoptr;		/* Line number pointer	*/
+	c32_t		s_paddr;		/* Physical address	*/
+	c32_t		s_vaddr;		/* Virtual address	*/
+	c32_t		s_size;			/* Size			*/
+	c32_t		s_scnptr;		/* Data pointer		*/
+	c32_t		s_relptr;		/* Reloc pointer	*/
+	c32_t		s_lnnoptr;		/* Line number pointer	*/
 	unsigned short	s_nreloc;		/* Reloc entries	*/
 	unsigned short	s_nlnno;		/* Line number entries	*/
-	long		s_flags;		/* Flags		*/
+	c32_t		s_flags;		/* Flags		*/
 }	SCNHDR;
 
 /* Names of special sections */
@@ -112,16 +116,16 @@ typedef	struct	scnhdr	{
  * and a path name aligned on a dword boundary.
  */
 typedef	struct	shrlib	{
-	long		entsz;			/* Entry size in longs	*/
-	long		pathndx;		/* Path offset in longs	*/
+	c32_t		entsz;			/* Entry size in c32_ts	*/
+	c32_t		pathndx;		/* Path offset in c32_ts	*/
 }	SHRLIB;
 
 
 /* Relocation items. */
 COFF_PACKED_STRUCT
 typedef	struct	reloc	{
-	long		r_vaddr COFF_PACKED;		/* Address (where)	*/
-	long		r_symndx COFF_PACKED;		/* Symbol index (what)	*/
+	c32_t		r_vaddr COFF_PACKED;		/* Address (where)	*/
+	c32_t		r_symndx COFF_PACKED;		/* Symbol index (what)	*/
 	unsigned short	r_type;			/* Type (how)		*/
 #ifdef COFF_PACKED_PRAGMA
 #pragma align 2
@@ -151,8 +155,8 @@ typedef char assert_reloc_size[sizeof(RELOC) == 0xa ? 1 : -1];
 COFF_PACKED_STRUCT
 typedef struct lineno {
 	union	{
-		long	l_symndx COFF_PACKED;		/* Fn name symbol index	*/
-		long	l_paddr COFF_PACKED;		/* Physical address	*/
+		c32_t	l_symndx COFF_PACKED;		/* Fn name symbol index	*/
+		c32_t	l_paddr COFF_PACKED;		/* Physical address	*/
 	} l_addr;
 	unsigned short l_lnno;			/* Line num., 0 for fn	*/
 #ifdef COFF_PACKED_PRAGMA
@@ -175,12 +179,12 @@ typedef	struct	syment	{
 	union	{
 		char	_n_name[SYMNMLEN];	/* Name			*/
 		struct	{
-			long	_n_zeroes COFF_PACKED;	/* If name[0-3] zero,	*/
-			long	_n_offset COFF_PACKED;	/* string table offset	*/
+			c32_t	_n_zeroes COFF_PACKED;	/* If name[0-3] zero,	*/
+			c32_t	_n_offset COFF_PACKED;	/* string table offset	*/
 		} _n_n;
-		char	*_n_nptr[2];
+		/*char	*_n_nptr[2];*/  /* Omitting this, it doesn't fit if sizeof(void*) > 4, e.g. on 64-bit systems. */
 	} _n;
-	long		n_value COFF_PACKED;		/* Value		*/
+	c32_t		n_value COFF_PACKED;		/* Value		*/
 	short		n_scnum;		/* Section number	*/
 	unsigned short	n_type;			/* Type			*/
 	char		n_sclass;		/* Storage class	*/
@@ -280,18 +284,18 @@ typedef union auxent	{
 #pragma align 2
 #endif
 	struct	{
-		long	x_tagndx COFF_PACKED;	/* struct/union/enum tag index	*/
+		c32_t	x_tagndx COFF_PACKED;	/* struct/union/enum tag index	*/
 		union	{
 			struct	{
 				unsigned short	x_lnno;	/* Decl. line	*/
 				unsigned short	x_size;	/* Size		*/
 			} x_lnsz;
-			long	x_fsize COFF_PACKED;	/* Function size	*/
+			c32_t	x_fsize COFF_PACKED;	/* Function size	*/
 		} x_misc;
 		union	{
 			struct	{		/* Functions		*/
-				long	x_lnnoptr COFF_PACKED;	/* line # ptr	*/
-				long	x_endndx COFF_PACKED;	/* index of .eb	*/
+				c32_t	x_lnnoptr COFF_PACKED;	/* line # ptr	*/
+				c32_t	x_endndx COFF_PACKED;	/* index of .eb	*/
 			} x_fcn;
 			struct	{		/* Arrays		*/
 				unsigned short x_dimen[DIMNUM];	/* Dims	*/
@@ -303,7 +307,7 @@ typedef union auxent	{
 		char x_fname[FILNMLEN];		/* File name		*/
 	} x_file;
 	struct	{				/* Sections		*/
-		long	x_scnlen COFF_PACKED;		/* Section length	*/
+		c32_t	x_scnlen COFF_PACKED;		/* Section length	*/
 		unsigned short	x_nreloc;	/* Reloc entrys		*/
 		unsigned short	x_nlinno;	/* Line number entries	*/
 	} x_scn;

@@ -2,6 +2,8 @@
  * 80386 assembler externs.
  */
 
+#include "intsize.h"
+
 /* main */
 void dodefs();		/* process -D and -E options at each pass */
 
@@ -16,7 +18,7 @@ unsigned short hash();
 /* symbol handlers */
 void symInit(void);		/* init symbol tables */
 unsigned short symGlob(); /* if -g mark new symbols global */
-void symDump(void (*output)(sym *sp), long limit);	/* dump string table if coff output */
+void symDump(void (*output)(sym *sp), i32_t limit);	/* dump string table if coff output */
 sym *symLookUp();	/* look up a symbol and maybe create one */
 short  opLookUp();	/* look up an opcode on the symbol table */
 void  opDelete();	/* remove an entry form the opcode table */
@@ -39,7 +41,7 @@ char *gcpy();			/* copy into tmp space */
 void yyerror(const char *fmt, ...);			/* display error msg */
 void fatal(const char *fmt, ...);			/* put a msg and die */
 void yywarn(const char *fmt, ...);
-char *alloc(unsigned n);
+char *alloc(size_t n);
 char *trim();			/* trim trailing spaces and tabs */
 short  countList();		/* count things with next or prev ptrs */
 void freeLevel();		/* pop a logic level */
@@ -55,7 +57,7 @@ void labelIgnored();		/* if label given print error message */
 void freeList();	/* free list connected by next ptrs */
 char *alloc();		/* get space or die */
 void initStor();	/* init sotorage functions */
-char *galloc();		/* alloc and remember it */
+char *galloc(size_t size);  /* alloc and remember it */
 void umark();		/* forget a galloc() */
 void freel();		/* free all galloc()ed areas not umarked */
 void umList();		/* umark a list */
@@ -82,7 +84,7 @@ extern char alignonX;
 extern short errCt;	/* count of errors */
 extern short kind;	/* the kind of the current opcode */
 extern short lastToken;	/* last token returned to yacc */
-extern short longMode;	/* Which Mode current 386 or 286 */
+extern short wideMode;	/* Which Mode current 386 or 286 */
 extern unsigned lflags; /* Addressing mode flags */
 extern char *title;	/* title header */
 extern char *dTime;	/* time of compile */
@@ -110,7 +112,7 @@ extern char nswitchX;	/* storage for nswitch from -n */
 extern short pcnt, bcnt; /* count op parens and brackets + left - right */
 extern short choices;	 /* number of ways to do this op */
 extern char xpass;	/* set if a branch changes size */
-extern long showSym;
+extern i32_t showSym;
 extern FILE *errdev;	/* Where to put out errors */
 
 double as_strtod(const char *nptr, char **endptr);

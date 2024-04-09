@@ -29,10 +29,7 @@ static unsigned qtop = 0;	/* highest used quick block */
  * Leave if there is no space left
  * at all.
  */
-char *
-alloc(n)
-unsigned n;
-{
+char *alloc(size_t n) {
 	register char *p;
 
 	if ((p = (char *)calloc(n, 1)) == NULL)
@@ -79,9 +76,7 @@ void expand(char **area, unsigned *current, unsigned by, unsigned size)
 /*
  * Get space and keep track of it on mArray.
  */
-char *
-galloc(size)
-unsigned size;
+char *galloc(size_t size)
 {
 	if(top == max)
 		expand(mArray, &max, 10, sizeof(*mArray));

@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "asm.h"
+#include "intsize.h"
 #include "y_tab.h"
 #include "symtab.h"
 

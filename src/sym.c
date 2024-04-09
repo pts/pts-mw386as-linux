@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "asm.h"
+#include "intsize.h"
 #include "symtab.h"
 #include "y_tab.h"
 
@@ -133,7 +134,7 @@ symGlob(int number)
 /*
  * Dump symbol data
  */
-void symDump(void (*output)(sym *sp), long limit)
+void symDump(void (*output)(sym *sp), i32_t limit)
 {
 	register sym *sp;
 	register int i;
@@ -230,7 +231,7 @@ register char *id;
  * If it is not found build it.
  */
 sym *
-symLookUp(char *id, int flag, long loc, int sg)
+symLookUp(char *id, int flag, i32_t loc, int sg)
 {
 	register sym *sp;
 	char *locSym;

@@ -31,22 +31,22 @@ void doOrg(parm *label, data *oper);
 typedef struct seg seg;
 struct seg {		/* coff section header */
 	char		s_name[8];	/* section name */
-	long		s_paddr;	/* physical address, aliased s_nlib */
-	long		s_vaddr;	/* virtual address */
-	long		s_size;		/* section size */
-	long		s_scnptr;	/* file ptr to raw data for section */
-	long		s_relptr;	/* file ptr to relocation */
-	long		s_lnnoptr;	/* file ptr to line numbers */
+	i32_t		s_paddr;	/* physical address, aliased s_nlib */
+	i32_t		s_vaddr;	/* virtual address */
+	i32_t		s_size;		/* section size */
+	i32_t		s_scnptr;	/* file ptr to raw data for section */
+	i32_t		s_relptr;	/* file ptr to relocation */
+	i32_t		s_lnnoptr;	/* file ptr to line numbers */
 	unsigned short	s_nreloc;	/* number of relocation entries */
 	unsigned short	s_nlnno;	/* number of line number entries */
-	long		s_flags;	/* flags */
+	i32_t		s_flags;	/* flags */
 
 	/* Extra data connected with this to allow running this segment */
-	long		data_seekad;	/* next data seek address */
-	long		relo_seekad;	/* next relocation seek address */
-	long		line_seekad;	/* next line seek address */
-	long		curadd;		/* current address this segment */
-	long		hiadd;		/* hi address this pass */
+	i32_t		data_seekad;	/* next data seek address */
+	i32_t		relo_seekad;	/* next relocation seek address */
+	i32_t		line_seekad;	/* next line seek address */
+	i32_t		curadd;		/* current address this segment */
+	i32_t		hiadd;		/* hi address this pass */
 	short		segSeq;		/* Segment sequence no */
 
 	char *bp;			/* data buffer pointer */
@@ -61,9 +61,9 @@ static seg *segs, *segend;	/* segment bases */
 static seg *cseg;		/* current segment */
 
 static unsigned short ct, pos, sects, symbs, usects;
-static long datapos, relpos, linepos, sympos, debpos;
-static long strOff = 4;
-static long lastSeek;
+static i32_t datapos, relpos, linepos, sympos, debpos;
+static i32_t strOff = 4;
+static i32_t lastSeek;
 static FILE *ofp;		/* output file */
 
 static int coffDefCt;		/* count of .def in file */
@@ -97,7 +97,7 @@ union word {
 
 union full {
 	unsigned char uc[4];
-	unsigned long ul;
+	u32_t ul;
 };
 
 /*
@@ -180,7 +180,7 @@ owrite(const char *buf, int size)
 /*
  * Seek then Write to obj file.
  */
-void xwrite(long add, char *buf, int size)
+void xwrite(i32_t add, char *buf, int size)
 {
 	if (add != lastSeek) {
 		if (fseek(ofp, add, 0))
@@ -287,7 +287,7 @@ unsigned short b;
 	if (!ct) {
 		sTitle();
 		pos = 4;
-		printf("%04lX", dot.loc + segs[dot.sg - 1].s_vaddr);
+		printf("%04"PRIX32"", dot.loc + segs[dot.sg - 1].s_vaddr);
 	}
 
 	if (!(ct % CMOD)) {
@@ -328,9 +328,9 @@ void outaw(unsigned short u)
 }
 
 /*
- * output unrelocated long.
+ * output unrelocated i32_t.
  */
-void outal(long ul)
+void outal(i32_t ul)
 {
 	if (2 == pass) {
 		union full l;
@@ -348,14 +348,14 @@ void outal(long ul)
 /*
  * output relocation.
  */
-static long
+static i32_t
 relOut(oper, sw)
 register expr *oper;
 unsigned sw;
 {
 	register RELOC *bp;
 	register sym *sp;
-	register long rv;
+	register i32_t rv;
 
 	rv = oper->exp;
 	if (NULL == (sp = oper->ref) || (sp->type & S_XSYM))
@@ -435,7 +435,7 @@ void outrw(expr *oper, int sw)
 }
 
 /*
- * output relocated long.
+ * output relocated i32_t.
  */
 void outrl(expr *oper, int sw)
 /* sw: 0 = Relative address, 1 = PC relative address */
@@ -543,7 +543,7 @@ char *fn;
 {
 	register seg *s;
 	unsigned size;
-	long xaddr;
+	i32_t xaddr;
 	
 	if ((cseg->curadd = dot.loc) > cseg->hiadd)
 		cseg->hiadd = cseg->curadd;
@@ -553,7 +553,7 @@ char *fn;
 		xpass = 1;	/* force another pass */
 		symptr = syms = (struct xsym*)alloc(coffDefCt * sizeof(*syms));
 	}
-	longMode = pass = dot.sg = 1;
+	wideMode = pass = dot.sg = 1;
 	if (indPass()) {	/* take an extra pass */
 		usects = 0;
 		for (s = segs; s < segend; s++) {
@@ -660,9 +660,11 @@ writeHeader()
 	register seg *s;
 	FILEHDR head;
 	int i;
+	time_t tt;
 
 	head.f_magic = C_386_MAGIC;
-	time(&head.f_timdat);
+	time(&tt);
+	head.f_timdat = tt;  /* Discard high bits if shorter. */
 	head.f_nsyms = symbs;
 	head.f_symptr = debpos;
 	head.f_opthdr = 0;
@@ -731,7 +733,7 @@ void cleanUp()
 void doOrg(parm *label, data *oper)
 {
 	register seg *s;
-	long from, to;
+	i32_t from, to;
 	char pad;
 
 	buildlab(label);
@@ -799,7 +801,7 @@ void segInit(void)
 	static char *segclass[] = {
 		".text", ".data", ".bss"
 	};
-	static long segflag[] = {
+	static i32_t segflag[] = {
 		STYP_TEXT, STYP_DATA, STYP_BSS
 	};
 
@@ -939,7 +941,7 @@ void coffEndef(void)
 /*
  * .type command
  */
-void coffType(long n)
+void coffType(i32_t n)
 {
 #ifdef NODEBUG
 	return;
@@ -998,7 +1000,7 @@ void coffVal(data *item)
 #endif
 }
 
-void coffScl(long n)
+void coffScl(i32_t n)
 {
 #ifdef NODEBUG
 	return;
@@ -1015,7 +1017,7 @@ void coffScl(long n)
 #endif
 }
 
-void coffSize(long n)
+void coffSize(i32_t n)
 {
 #ifdef NODEBUG
 	return;
@@ -1029,7 +1031,7 @@ void coffSize(long n)
 #endif
 }
 
-void coffDim(long n, int d)
+void coffDim(i32_t n, int d)
 {
 #ifdef NODEBUG
 	return;
@@ -1076,7 +1078,7 @@ void coffTag(parm *p)
 #endif
 }
 
-void coffLn(long n)
+void coffLn(i32_t n)
 {
 #ifdef NODEBUG
 	return;
@@ -1096,7 +1098,7 @@ void coffLn(long n)
 #endif
 }
 
-void coffLine(long n)
+void coffLine(i32_t n)
 {
 #ifdef NODEBUG
 	return;
@@ -1169,7 +1171,7 @@ void writeDebugLong()
  * .comm and .lcomm commands.
  * Improve later.
  */
-void comm(opc *op, parm *p, long n)
+void comm(opc *op, parm *p, i32_t n)
 {
 	if (NULL == p) {
 		yyerror(".comm must have tag");
@@ -1192,7 +1194,7 @@ void
 segment(op, p, n)
 opc *op;
 parm *p;
-long n;
+i32_t n;
 {
 	register seg *s;
 	sym *rv;
@@ -1246,7 +1248,7 @@ char *name;
 		".init", ".fini", ".rodata",
 		".comment", ".ctors", ".dtors"
 	};
-	static long segflag[] = {
+	static i32_t segflag[] = {
 		STYP_TEXT, STYP_DATA, STYP_DATA,
 		STYP_INFO, STYP_DATA, STYP_DATA
 	};

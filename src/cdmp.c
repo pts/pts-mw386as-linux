@@ -23,6 +23,7 @@
 #include <time.h>
 
 #include "coff.h"
+#include "intsize.h"
 
 char *alloc(unsigned n);
 FILE *xopen(const char *fn, const char *acs);
@@ -35,11 +36,10 @@ typedef	char	SECNAME[9];	/* NUL-terminated 8 character section name */
 /* Some shortcut display stuff. */
 #define show(flag, msg) if (fh.f_flags & flag) printf("\t" msg "\n");
 #define cs(x) case x: printf(#x); break;
-#define cd(x) case x: printf(#x "\tvalue=%ld ", se->n_value); break;
-#define cx(x) case x: printf(#x "\tvalue=0x%lx ", se->n_value); break;
+#define cd(x) case x: printf(#x "\tvalue=%"PRId32" ", se->n_value); break;
+#define cx(x) case x: printf(#x "\tvalue=0x%"PRIx32" ", se->n_value); break;
 
 /* Externals. */
-extern	long	ftell();
 extern	char	*optarg;
 
 /* Forward. */
@@ -64,14 +64,14 @@ char	dswitch;		/* Suppress data dumps			*/
 char	iswitch;		/* Dump text in instr mode		*/
 FILE	*fp;			/* COFF file pointer			*/
 char	lswitch;		/* Suppress line number dumps		*/
-long	num_sections;		/* Number of sections			*/
-long	num_symbols;		/* Number of symbols			*/
+c32_t	num_sections;		/* Number of sections			*/
+c32_t	num_symbols;		/* Number of symbols			*/
 char	rswitch;		/* Suppress reloc dumps			*/
 SECNAME	*sec_name;		/* Section names			*/
-long	section_seek;		/* Seek to seek start of section	*/
+c32_t	section_seek;		/* Seek to seek start of section	*/
 char	sswitch;		/* Suppress symbol dumps		*/
 char	*str_tab;		/* String char array			*/
-long	symptr;			/* File pointer to symbol table entries	*/
+c32_t	symptr;			/* File pointer to symbol table entries	*/
 char	xswitch;		/* Dump aux entries in hex		*/
 
 /*
@@ -142,12 +142,12 @@ optHeader()
 	printf("\nOPTIONAL HEADER VALUES\n");
 	printf("magic            = 0x%x\n", oh.magic);
 	printf("version stamp    = %d\n", oh.vstamp);
-	printf("text size        = 0x%lx\n", oh.tsize);
-	printf("init data size   = 0x%lx\n", oh.dsize);
-	printf("uninit data size = 0x%lx\n", oh.bsize);
-	printf("entry point      = 0x%lx\n", oh.entry);
-	printf("text start       = 0x%lx\n", oh.text_start);
-	printf("data start       = 0x%lx\n", oh.data_start);
+	printf("text size        = 0x%"PRIx32"\n", oh.tsize);
+	printf("init data size   = 0x%"PRIx32"\n", oh.dsize);
+	printf("uninit data size = 0x%"PRIx32"\n", oh.bsize);
+	printf("entry point      = 0x%"PRIx32"\n", oh.entry);
+	printf("text start       = 0x%"PRIx32"\n", oh.text_start);
+	printf("data start       = 0x%"PRIx32"\n", oh.data_start);
 }
 
 /*
@@ -157,18 +157,20 @@ void
 readHeaders(fn) char *fn;
 {
 	FILEHDR	fh;
+	time_t tt;
 
 	fp = xopen(fn, "rb");
 
 	if (1 != fread(&fh, sizeof(fh), 1, fp))
 		fatal("error reading COFF header");
 
+	tt = fh.f_timdat;  /* In case of size difference. */
 	printf("FILE %s HEADER VALUES\n", fn);
 	printf("magic number   = 0x%x\n", fh.f_magic);
-	printf("sections       = %ld\n", num_sections = fh.f_nscns);
-	printf("file date      = %s", ctime(&fh.f_timdat));
-	printf("symbol ptr     = 0x%lx\n", symptr = fh.f_symptr);
-	printf("symbols        = %ld\n", num_symbols = fh.f_nsyms);
+	printf("sections       = %"PRId32"\n", num_sections = fh.f_nscns);
+	printf("file date      = %s", ctime(&tt));
+	printf("symbol ptr     = 0x%"PRIx32"\n", symptr = fh.f_symptr);
+	printf("symbols        = %"PRId32"\n", num_symbols = fh.f_nsyms);
 	printf("sizeof(opthdr) = %d\n", fh.f_opthdr);
 	printf("flags          = 0x%x\n", fh.f_flags);
 	show(F_RELFLG, "Relocation info stripped from file");
@@ -195,14 +197,14 @@ void
 shrLib()
 {
 	SHRLIB shr;
-	register long i;
+	register c32_t i;
 	register char *pathn;
 
 	if (1 != fread(&shr, sizeof(shr), 1, fp))
 		fatal("error reading library section");
 
 	if (shr.pathndx -= 2) {
-		long j;
+		c32_t j;
 		printf("\nExtra Library info:\n");
 
 		for (j = shr.pathndx * 4;
@@ -228,7 +230,7 @@ void
 readSection(n) register int n;
 {
 	SCNHDR	sh;
-	register long i;
+	register c32_t i;
 
 	fseek(fp, section_seek, 0);
 	if (1 != fread(&sh, sizeof(SCNHDR), 1, fp))
@@ -239,15 +241,15 @@ readSection(n) register int n;
 
 	strncpy(sec_name[n], checkStr(sh.s_name), sizeof(SECNAME) - 1);
 	printf("\n%s - SECTION HEADER -\n", sec_name[n]);
-	printf("physical address    = 0x%lx\n", sh.s_paddr);
-	printf("virtual address     = 0x%lx\n", sh.s_vaddr);
-	printf("section size        = 0x%lx\n", sh.s_size);
-	printf("file ptr to data    = 0x%lx\n", sh.s_scnptr);
-	printf("file ptr to relocs  = 0x%lx\n", sh.s_relptr);
-	printf("file ptr to lines   = 0x%lx\n", sh.s_lnnoptr);
+	printf("physical address    = 0x%"PRIx32"\n", sh.s_paddr);
+	printf("virtual address     = 0x%"PRIx32"\n", sh.s_vaddr);
+	printf("section size        = 0x%"PRIx32"\n", sh.s_size);
+	printf("file ptr to data    = 0x%"PRIx32"\n", sh.s_scnptr);
+	printf("file ptr to relocs  = 0x%"PRIx32"\n", sh.s_relptr);
+	printf("file ptr to lines   = 0x%"PRIx32"\n", sh.s_lnnoptr);
 	printf("relocation entries  = %u\n", sh.s_nreloc);
 	printf("line number entries = %u\n", sh.s_nlnno);
-	printf("flags               = 0x%lx\t", sh.s_flags);
+	printf("flags               = 0x%"PRIx32"\t", sh.s_flags);
 	switch((int)sh.s_flags) {
 
 	case STYP_GROUP:
@@ -301,7 +303,7 @@ readSection(n) register int n;
 	}
 	/* Print raw data. */
 	else if (!dswitch && strcmp(sh.s_name, ".bss")) { /* don't output bss */
-		register long j;
+		register c32_t j;
 
 		fseek(fp, sh.s_scnptr, 0);
 		printf("\nRAW DATA\n");
@@ -326,7 +328,7 @@ readSection(n) register int n;
 			if (1 != fread(&re, RELSZ, 1, fp))
 				fatal("error reading relocation entry");
 
-			printf("address=0x%lx\tindex=%ld \ttype=",
+			printf("address=0x%"PRIx32"\tindex=%"PRId32" \ttype=",
 				re.r_vaddr, re.r_symndx);
 			switch(re.r_type) {
 			cs(R_DIR8)
@@ -360,10 +362,10 @@ readSection(n) register int n;
 				fatal("error reading line number entry");
 
 			if (le.l_lnno)
-				printf("address=0x%lx\tline=%d\n",
+				printf("address=0x%"PRIx32"\tline=%d\n",
 					le.l_addr.l_paddr, le.l_lnno);
 			else
-				printf("function=%ld\n", le.l_addr.l_symndx);
+				printf("function=%"PRId32"\n", le.l_addr.l_symndx);
 		}
 	}
 }
@@ -376,8 +378,8 @@ void
 readStrings()
 {
 	register unsigned char *str_ptr, c;
-	long str_seek;
-	unsigned long str_length;
+	c32_t str_seek;
+	u32_t str_length;
 	unsigned len;
 
 	str_seek = symptr + (SYMESZ * num_symbols);
@@ -396,7 +398,7 @@ readStrings()
 		fatal("bad string table length %ld", str_length);
 	str_tab = alloc(len);
 	if (1 != fread(str_tab, len, 1, fp))
-		fatal("error reading string table %lx %d", ftell(fp), len);
+		fatal("error reading string table %"PRIx32" %d", ftell(fp), len);
 
 	for (str_ptr = (unsigned char*)str_tab; (char*)str_ptr < str_tab + str_length; ) {
 		putchar('\t');
@@ -422,7 +424,7 @@ void
 readSymbols()
 {
 	SYMENT se;
-	register long i, j, naux;
+	register c32_t i, j, naux;
 
 	if (sswitch)
 		return;
@@ -450,7 +452,7 @@ void print_aux(int n, register SYMENT *sep)
 {
 	AUXENT ae;
 	register int type, class, i;
-	register long l;
+	register c32_t l;
 	int has_fsize, has_fcn;
 	unsigned short *sp;
 	char fname[FILNMLEN + 1];
@@ -475,7 +477,7 @@ void print_aux(int n, register SYMENT *sep)
 		printf("\tfilename=%s\n", checkStr(fname));
 		return;
 	} else if (class == C_STAT && type == T_NULL) {	/* section name */
-		printf("\tlength=%lx\trelocs=%d\tlinenos=%d\n",
+		printf("\tlength=%"PRIx32"\trelocs=%d\tlinenos=%d\n",
 			ae.ae_scnlen,
 			ae.ae_nreloc,
 			ae.ae_nlinno);
@@ -499,12 +501,12 @@ void print_aux(int n, register SYMENT *sep)
 
 	/* Print tag index. */
 	if ((l = ae.ae_tagndx))
-		printf("\ttag=%ld", l);
+		printf("\ttag=%"PRId32"", l);
 
 	/* Print fsize or lnsz info. */
 	if (has_fsize) {
 		if ((l = ae.ae_fsize))
-			printf("\tfsize=%ld", l);
+			printf("\tfsize=%"PRId32"", l);
 	} else {
 		if ((i = ae.ae_lnno))
 			printf("\tlnno=%d", i);
@@ -515,9 +517,9 @@ void print_aux(int n, register SYMENT *sep)
 	/* Print fcn or ary info. */
 	if (has_fcn) {
 		if ((l = ae.ae_lnnoptr))
-			printf("\tlnnoptr=0x%lx", l);
+			printf("\tlnnoptr=0x%"PRIx32"", l);
 		if ((l = ae.ae_endndx))
-			printf("\tend=%ld", l);
+			printf("\tend=%"PRId32"", l);
 	} else {
 		sp = ae.ae_dimen;
 		if (*sp != 0) {
@@ -530,7 +532,7 @@ void print_aux(int n, register SYMENT *sep)
 
 	/* Print tv index. */
 	if ((l = ae.ae_tvndx))
-		printf("\ttv=%ld", l);
+		printf("\ttv=%"PRId32"", l);
 
 	putchar('\n');
 }
@@ -539,14 +541,14 @@ void print_aux(int n, register SYMENT *sep)
  * Process symbol table entry.
  */
 void
-print_sym(se, n) register SYMENT *se; long n;
+print_sym(se, n) register SYMENT *se; c32_t n;
 {
 	register int i, c;
 	int eflag, derived;
 	
 	if (se->n_sclass == C_FILE && n > 0)
 		putchar('\n');			/* for readability */
-	printf("%4ld   ", n);			/* index number */
+	printf("%4"PRId32"   ", n);			/* index number */
 
 	eflag = 0;				/* no errors */
 	if (se->n_zeroes != 0) {		/* name in place */
@@ -655,9 +657,9 @@ print_sym(se, n) register SYMENT *se; long n;
 
 	case C_EXT:
 		if (se->n_scnum != N_UNDEF)
-			printf("C_EXT\tvalue=0x%lx", se->n_value);
+			printf("C_EXT\tvalue=0x%"PRIx32"", se->n_value);
 		else if (se->n_value != 0)
-			printf("Common\tlength=%ld", se->n_value);
+			printf("Common\tlength=%"PRId32"", se->n_value);
 		else
 			printf("External");
 		break;

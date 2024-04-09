@@ -3,6 +3,7 @@
  */
 #include "asm.h"
 #include "asflags.h"
+#include "intsize.h"
 #include "y_tab.h"
 #include "symtab.h"
 
@@ -14,7 +15,7 @@ static int ct;
 static expr *addr, *displ, *immed, *immedx;
 static char mod, rm, reg, scale, index, base, immed8;
 
-static unsigned long uflags;
+static u32_t uflags;
 #define U_REL8	1	/* relative 8  bit operand */
 #define U_REL16	2	/* relative 16 bit operand */
 #define U_RELI	3	/* we get to choose 8 0r 16 bit */
@@ -35,7 +36,7 @@ static unsigned long uflags;
 
 void outab(unsigned short b);
 void outaw(unsigned short u);
-void outal(long ul);
+void outal(i32_t ul);
 void outrb(expr *oper, int sw);
 void outrw(expr *oper, int sw);
 void outrl(expr *oper, int sw);
@@ -76,7 +77,7 @@ register expr *oper;
 			opList[i] = oper;
 
 	/* try the stuff not in the wrong mode */
-	wrongMode = longMode ? WORD_MODE : LONG_MODE;
+	wrongMode = wideMode ? WORD_MODE : LONG_MODE;
 	for (i = 0; i < choices; i++) {
 		st = typTab + op[i].kind;
 		if (!(st->bldr & wrongMode) && !buildop(op + i))
@@ -106,7 +107,7 @@ static void
 setDisp(this)
 register expr *this;
 {
-	long d;
+	i32_t d;
 
 	if ((NULL != this->ref) ||
 	    (d = this->exp) < -128 || d > 127) {
@@ -127,7 +128,7 @@ register expr *this;
 static int checkop(register expr *this, unsigned short type)
 {
 	register sym *r1;
-	long d;
+	i32_t d;
 	int  regsz = 0;  /* Pacify GCC about unininitialized variable. */
 
 	r1 = (sym*)this->r1;
@@ -142,15 +143,15 @@ static int checkop(register expr *this, unsigned short type)
 		break;
 
 	case rm8:
-		regsz = 1;	/* reg must be 1 long */
+		regsz = 1;	/* reg must be 1 byte long */
 		break;
 
 	case rm16:
-		regsz = 2;	/* reg must be 2 long */
+		regsz = 2;	/* reg must be 2 bytes long */
 		break;
 
 	case rm32:
-		regsz = 4;	/* reg must be 4 long */
+		regsz = 4;	/* reg must be 4 bytes long */
 		break;
 
 	case reli:	/* near branch */
@@ -158,14 +159,14 @@ static int checkop(register expr *this, unsigned short type)
 			uflags = U_RELI;
 			return (T_D != this->mode);
 		}
-		regsz = longMode ? 4 : 2;
+		regsz = wideMode ? 4 : 2;
 		break;
 
 	case rel8:	/* near branch */
 		uflags = U_REL8;
 		return (T_D != this->mode);
 		    
-	case rel16:	/* medium or long branch */
+	case rel16:	/* medium or i32_t branch */
 		uflags = U_REL16;
 		return (T_D != this->mode);
 		    
@@ -363,7 +364,7 @@ static int checkop(register expr *this, unsigned short type)
 	 * The table mode has been used to decide the proper
 	 * size for registers. Decide which is the real mode.
 	 */
-	if (longMode)
+	if (wideMode)
 		if (lflags & A_SHORT)
 			type = rm16;
 		else
@@ -603,7 +604,7 @@ static int buildop(const opc *op)
 	if (st->bldr & (AMBIG_MATCH | TWO_OP_MULT | XTENDS)) {
 		if (st->bldr & AMBIG_MATCH)
 			yywarn("Ambiguous operand length, %d bytes selected", 
-			   (MOV_BYTE == op->code) ? 1 : (longMode ? 4 : 2));
+			   (MOV_BYTE == op->code) ? 1 : (wideMode ? 4 : 2));
 			/* The assembler cannot tell the operand length by
 			 * looking at the opcode and the operands.
 			 * You may want to do something like change
@@ -661,11 +662,11 @@ static int buildop(const opc *op)
 
 	/* See Intel chip errata for 80386-B1 23. */
 	if (((lastOp == POPA) && (uflags & U_RML) && (mod != 3)) &&
-		/* determine longmode of popa */
-	    ((longMode ? !(lastFlags & 2) : (lastFlags & 4)) ?
-		/* longmode then if base index and either not %eax */
+		/* determine width of popa */
+	    ((wideMode ? !(lastFlags & 2) : (lastFlags & 4)) ?
+		/* wide then if base index and either not %eax */
 	     ((rm == 4) && (index || base)) :
-		/* not longmode any index was %eax */
+		/* not wide any index was %eax */
 	     (!rm || ((rm == 4) && (!index || !base)))))
 		errata(NOP);
 
@@ -705,7 +706,7 @@ static int buildop(const opc *op)
 	lastOp = op->code;
 
 	if (lflags & A_INDIR) {
-		lastFlags = (longMode ? LONG_MODE : WORD_MODE) | MODRM_BYTE;
+		lastFlags = (wideMode ? LONG_MODE : WORD_MODE) | MODRM_BYTE;
 		switch (lastOp) {
 		case JMP_NEAR:
 			lastOp = (short)JMP_INDIR;	break;
@@ -718,7 +719,7 @@ static int buildop(const opc *op)
 		}
 	}
 
-	if (longMode) {
+	if (wideMode) {
 		if (lflags & A_SHORT) {
 			yywarn("16 bit addressing mode used in 32 bit code");
 			/* You probably don't want to do this.
@@ -954,7 +955,7 @@ register expr *op;
 	static char *list;		/* one for each relative branch */
 	static unsigned max;		/* size of list */
 	char size;			/* BYTE_J NEAR_J EXT_J */
-	long d = 0;			/* displacment */  /* Pacify GCC about unininitialized variable. */
+	i32_t d = 0;			/* displacment */  /* Pacify GCC about unininitialized variable. */
 	short  flag, exref;
 	char *old;
 
@@ -1032,14 +1033,14 @@ register expr *op;
 		outab(2);
 
 		outab(JMP_SHORT);	/* byte jump over near jump */
-		outab(longMode ? 0x05 : 0x03);
+		outab(wideMode ? 0x05 : 0x03);
 
 		nearOp = JMP_NEAR;	/* near jump to caller's destination */
 		/* fallthrough */
 
 	case NEAR_J:	/* near jumps */
 		putOp(nearOp);
-		if (longMode)
+		if (wideMode)
 			if (exref)
 				outrl(op, 1);
 			else	/* displacement from end of address */

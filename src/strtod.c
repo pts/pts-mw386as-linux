@@ -3,17 +3,18 @@
  * strtod()
  * ANSI 4.10.1.4.
  * Convert ASCII to double (the System V way).
- * Builds significand in an unsigned long, for efficiency.
+ * Builds significand in an uin32_t, for efficiency.
  * Does not use any knowledge about floating point representation,
  * except DBL_MIN_10_EXP, DBL_MAX_10_EXP, DBL_EXP_10_DIG.
  */
 
 #include <stdlib.h>
-#include "utype.h"
 #include <errno.h>
 #include <math.h>
-#include <limits.h>  /* ULONG_MAX */
 #include <float.h>
+
+#include "intsize.h"
+#include "utype.h"
 
 double _pow10(int exp);
 
@@ -31,7 +32,7 @@ double _pow10(int exp);
 #define	NEG	1			/* negative significand */
 #define	DOT	2			/* decimal point seen	*/
 #define	NEGEXP	4			/* negative exponent	*/
-#define	BIG	8			/* significand too big for ulong */
+#define	BIG	8			/* significand too big for u32_t */
 #define	OVER	16			/* overflow		*/
 #define	UNDER	32			/* underflow		*/
 
@@ -40,7 +41,7 @@ as_strtod(const char *nptr, char **endptr)
 {
 	register const char *cp;
 	register int c, flag, eexp;
-	register unsigned long val;
+	register u32_t val;
 	int exp, edigits, sdigits, vdigits;
 	double d;
 	const char *savcp;
@@ -91,12 +92,8 @@ as_strtod(const char *nptr, char **endptr)
 			}
 			if (sdigits != 0 || c != 0)
 				++sdigits;	/* significant digits seen */
-#if	__STDC__
-			if (val > (ULONG_MAX-9) / 10) {
-#else
 			/* The pre-ANSI compiler gets the test above wrong. */
-			if (val > 429496728L) {
-#endif
+			if (val > 429496728UL) {
 				/* Significand too big for val, use d. */
 				if (flag & BIG)
 					d = d * _pow10(vdigits) + val;

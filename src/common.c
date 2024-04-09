@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "asm.h"
+#include "intsize.h"
 
 /*
  * Open a file or die in the attempt.
@@ -217,7 +218,7 @@ char *fn;
  * Check for no truncation to short.
  */
 int ck16(n)
-register long n;
+register i32_t n;
 {
 	register short i;
 
