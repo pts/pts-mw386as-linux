@@ -23,24 +23,36 @@ fi
 CC="$1"
 shift
 CCBASE="${CC##*/}"
+EXE=
+IS_CROSS=  # If non-empty, then we do cross-compilation.
+if test "$1" = --cross; then IS_CROSS=1; shift; fi
 case "$CCBASE" in
  *tcc* | *tinycc*)  # TinyCC: https://bellard.org/tcc/
   CEXTRA="-O2 -W -Wall" ;;
- *owcc*)  # OpenWatcom (https://github.com/open-watcom/open-watcom-v2) targeting Linux i386, running on Linux i386 or amd64.
+ *owcc*)  # OpenWatcom (https://github.com/open-watcom/open-watcom-v2) targeting Linux i386 or Win32, running on Linux i386 or amd64.
   test "$WATCOM"
-  set x -I"$WATCOM/lh"; shift
-  CEXTRA="-blinux -fsigned-char -O2 -W -Wall -Werror -std=c89 -Wno-n308" ;;
+  CEXTRA="-fsigned-char -O2 -W -Wall -std=c89 -Wno-n308"  # We don't want -Werror.
+  for ARG in "$@"; do
+    test "$ARG" = -bwin32 && EXE=.exe
+  done
+  if test "$EXE"; then
+    IS_CROSS=1
+    set x -I"$WATCOM/h" -Wl,runtime -Wl,console=3.10 -march=i386 nouser32.c "$@"; shift  # Should be stripped. GNU strip(1) works.
+  else
+    set x -I"$WATCOM/lh" -blinux -march=i386 "$@"; shift
+  fi
+  ;;
  *)  # Defaults for GCC and Clang.
-  CEXTRA="-O2 -W -Wall -ansi -pedantic" ;;  # No -Werror.
+  CEXTRA="-O2 -W -Wall -ansi -pedantic" ;;  # We don't want -Werror.
 esac
 
 ( cd "$MYDIR" &&
-  "$CC" $CEXTRA $@ -o tabbld $TABBLDC &&
-  ./tabbld -d -e <table.386 &&   # Generates symtab.c, symtab.h, (-d not: document), (-e not: test.s). Can be skipped for cross-compilation.
-  "$CC" $CEXTRA $@ -o as $ASC &&
-  "$CC" $CEXTRA $@ -o cdmp $CDMPC &&
+  "$CC" $CEXTRA $@ -o tabbld$EXE $TABBLDC &&
+  (test "$IS_CROSS" || ./tabbld$EXE -d -e <table.386) &&   # Generates symtab.c, symtab.h, (-d not: document), (-e not: test.s). Can be skipped for cross-compilation.
+  "$CC" $CEXTRA $@ -o as$EXE $ASC &&
+  "$CC" $CEXTRA $@ -o cdmp$EXE $CDMPC &&
   :
 ) || exit "$?"
-ls -l "$MYDIR/as" "$MYDIR/cdmp"
+ls -l "$MYDIR/as$EXE" "$MYDIR/cdmp$EXE"
 
 : "$0" OK.
