@@ -120,7 +120,7 @@ int findOpr(char *name);
 /*
  * Report error.
  */
-void error(const char *fmt, ...)
+static void error(const char *fmt, ...)
 {
 	va_list ap;
 	fprintf(stderr, "%d: ", lineno);
