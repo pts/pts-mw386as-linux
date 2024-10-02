@@ -50,9 +50,24 @@ RCS file.
 ## The source port
 
 Another port in this repository is the port of the C source code of the Mark
-Williams 80386 assembler to C89 (ANSI C). It's in the directory `src/`. To
-compile it on a Unix system (e.g. Linux or macOS), install a C compiler, and
-run the script `src/compile.sh`. The output executables are `src/as`
+Williams 80386 assembler to C89 (ANSI C). It's in the directory `src/`.
+
+It's based on the source files in the most recent commit in the [RCS
+repo](https://github.com/gspu/Coherent/blob/master/mwc/romana/relic/b/bin/as/RCS)
+with last commit at 1993-09-02 12:53:33. Since then, following changes have
+been applied:
+
+* Maintenance changes by Steve Ness on 1993-09-02. These don't change the
+  functionality and they don't fix any bugs.
+* Adding a copy of some Coherent libc functions (such as randl(3) in
+  randl.c), source file dates between 1991--1993.
+* Portability improvements and bugfixes by pts, in 2024--.
+
+Both the original RCS repo and the changes above have been preserved in the
+Git history of pts-mw386as-linux.
+
+To compile it on a Unix system (e.g. Linux or macOS), install a C compiler,
+and run the script `src/compile.sh`. The output executables are `src/as`
 (assembler) and `src/cdmp` (with similar purpose as GNU objdump(1), but for
 COFF object files).
 
