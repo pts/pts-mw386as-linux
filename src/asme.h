@@ -27,7 +27,7 @@ void defMac(char *s, parm *p, short t);		/* create a new macro name */
 void symReNumber(char *id, int number);
 
 /* ind.c */
-void indBra();		/* indef branch */  /* !! TODO(pts): Proper prototype. */
+void indBra(unsigned nearOp, unsigned byteOp, expr *op);		/* indef branch */  /* `unsigned short' would be OK for nearOp and byteOp, but that makes GCC generate a few bytes longer code. */
 int  indPass(void);		/* Do we need another pass ? */
 
 /* c_out.c */

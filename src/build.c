@@ -948,9 +948,7 @@ register unsigned short opCode;
  * Calculates branch size. Forces another pass if a branch expands.
  */
 void
-indBra(nearOp, byteOp, op)
-unsigned short nearOp, byteOp;
-register expr *op;
+indBra(unsigned nearOp, unsigned byteOp, register expr *op)
 {
 	static char *list;		/* one for each relative branch */
 	static unsigned max;		/* size of list */
