@@ -13,57 +13,57 @@ extern char *as_optarg;	/* Global argument pointer */
 int getargs(int argc, char * const argv[], const char *optstring);	/* fancy get arguments, like getopt(3) */
 
 /* hash */
-unsigned short hash();
+unsigned short hash(const char *p);
 
 /* symbol handlers */
 void symInit(void);		/* init symbol tables */
-unsigned short symGlob(); /* if -g mark new symbols global */
+unsigned short symGlob(int number); /* if -g mark new symbols global */
 void symDump(void (*output)(sym *sp), i32_t limit);	/* dump string table if coff output */
-sym *symLookUp();	/* look up a symbol and maybe create one */
-short  opLookUp();	/* look up an opcode on the symbol table */
-void  opDelete();	/* remove an entry form the opcode table */
-macro *macLookUp();	/* look up a macro */
-void defMac();		/* create a new macro name */
+sym *symLookUp(const char *id, int flag, i32_t loc, int sg);	/* look up a symbol and maybe create one */
+short  opLookUp(const char *id);	/* look up an opcode on the symbol table */
+void  opDelete(const char *id);	/* remove an entry form the opcode table */
+macro *macLookUp(const char *id, int type);	/* look up a macro */
+void defMac(char *s, parm *p, short t);		/* create a new macro name */
 void symReNumber(char *id, int number);
 
 /* ind.c */
-void indBra();		/* indef branch */
-int  indPass();		/* Do we need another pass ? */
+void indBra();		/* indef branch */  /* !! TODO(pts): Proper prototype. */
+int  indPass(void);		/* Do we need another pass ? */
 
 /* c_out.c */
-void segment();
-void section();
+void segment(const opc *op, parm *p, i32_t n);
+void section(const char *name);
 
 /* common subs */
-FILE *xopen();			/* open a file or die in the attempt */
-char *scpy();			/* make a new copy of a string */
-char *gcpy();			/* copy into tmp space */
+FILE *xopen(const char *fn, const char *acs);			/* open a file or die in the attempt */
+char *scpy(const char *id, unsigned disp);			/* make a new copy of a string */
+char *gcpy(char *id, unsigned disp);			/* copy into tmp space */
 void yyerror(const char *fmt, ...);			/* display error msg */
 void fatal(const char *fmt, ...);			/* put a msg and die */
 void yywarn(const char *fmt, ...);
 char *alloc(size_t n);
-char *trim();			/* trim trailing spaces and tabs */
-short  countList();		/* count things with next or prev ptrs */
-void freeLevel();		/* pop a logic level */
-void newLevel();		/* push a logic level */
-char *parmFind();		/* infd a parm by number */
-void doShift();			/* shift parms by 1 */
-char *lookList();		/* get a parm by name */
-void fileOpen();		/* open a file & creat ctl block */
-void buildlab();		/* build a label */
-void labelIgnored();		/* if label given print error message */
+char *trim(char *s);			/* trim trailing spaces and tabs */
+short  countList(const parm *p);		/* count things with next or prev ptrs */
+void freeLevel(void);		/* pop a logic level */
+void newLevel(int type);		/* push a logic level */
+char *parmFind(short n, parm *p);		/* infd a parm by number */
+void doShift(short n);			/* shift parms by 1 */
+char *lookList(const char *t);		/* get a parm by name */
+void fileOpen(const char *fn);		/* open a file & creat ctl block */
+void buildlab(const parm *label);		/* build a label */
+void labelIgnored(const parm *label);		/* if label given print error message */
 
 /* space.c functions */
-void freeList();	/* free list connected by next ptrs */
-char *alloc();		/* get space or die */
-void initStor();	/* init sotorage functions */
+void freeList(parm *t);	/* free list connected by next ptrs */
+char *alloc(size_t n);		/* get space or die */
+void initStor(void);	/* init sotorage functions */
 char *galloc(size_t size);  /* alloc and remember it */
-void umark();		/* forget a galloc() */
-void freel();		/* free all galloc()ed areas not umarked */
-void umList();		/* umark a list */
-expr *xalloc();		/* get an expr block */
-sym *copySym();		/* make a copy of a sym block */
-data *gitem();		/* get misc data item space */
+void umark(const char *p);		/* forget a galloc() */
+void freel(void);		/* free all galloc()ed areas not umarked */
+void umList(const parm *p);		/* umark a list */
+expr *xalloc(void);		/* get an expr block */
+sym *copySym(const sym *s);		/* make a copy of a sym block */
+data *gitem(int type);		/* get misc data item space */
 
 /* common data */
 extern char bswitch;	/* reverse bracket sense */

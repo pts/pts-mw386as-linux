@@ -14,7 +14,7 @@
  */
 FILE *
 xopen(fn, acs)
-char *fn, *acs;
+const char *fn, *acs;
 {
 	FILE *tmp;
 
@@ -46,7 +46,7 @@ register unsigned disp;
 
 char *
 scpy(id, disp)
-register char *id;
+register const char *id;
 register unsigned disp;
 {
 	register char *tmp;
@@ -81,7 +81,7 @@ char *s;
  */
 short
 countList(p)
-parm *p;
+const parm *p;
 {
 	register short n;
 
@@ -96,7 +96,7 @@ parm *p;
  */
 char *
 lookList(t)
-char *t;
+const char *t;
 {
 	short n;
 	register parm *p;
@@ -119,9 +119,7 @@ char *t;
  * Find parm n.
  */
 char *
-parmFind(n, p)
-short n;
-register parm *p;
+parmFind(short n, register parm *p)
 {
 	for(; NULL != p; p = p->next)
 		if(!n--)
@@ -133,8 +131,7 @@ register parm *p;
  * Do shift operation.
  */
 void
-doShift(n)
-short n;
+doShift(short n)
 {
 	register parm *p, **pp;
 	short sav = n;
@@ -187,7 +184,7 @@ freeLevel(void)
  */
 void
 fileOpen(fn)
-char *fn;
+const char *fn;
 {
 	inpctl *ip;
 
@@ -232,7 +229,7 @@ register i32_t n;
  */
 void
 buildlab(label)
-parm *label;
+const parm *label;
 {
 	if(NULL != label)
 		symLookUp(label->str, S_LOCAL, dot.loc, dot.sg);
@@ -243,7 +240,7 @@ parm *label;
  */
 void
 labelIgnored(label)
-parm *label;
+const parm *label;
 {
 	if (NULL != label)
 		yyerror("Label ignored");

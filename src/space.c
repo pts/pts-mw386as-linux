@@ -49,7 +49,7 @@ char *alloc(size_t n) {
  * Init storage functions.
  */
 void
-initStor()
+initStor(void)
 {
 
 #if 0
@@ -90,7 +90,7 @@ char *galloc(size_t size)
  */
 void
 umark(p)
-char *p;
+const char *p;
 {
 	register char **t;
 
@@ -107,7 +107,7 @@ char *p;
  * free all items on mArray.
  */
 void
-freel()
+freel(void)
 {
 	register char **t;
 
@@ -122,10 +122,10 @@ freel()
  */
 void
 umList(p)
-register parm *p;
+register const parm *p;
 {
 	for(; NULL != p; p = p->next)
-		umark((char *)p);
+		umark((const char *)p);
 }
 
 /*
@@ -150,7 +150,7 @@ register parm *p;
  * malloc()ing expr blocks.
  */
 expr *
-xalloc()
+xalloc(void)
 {
 	register expr *tmp;
 
@@ -166,7 +166,7 @@ xalloc()
  */
 sym *
 copySym(s)
-sym *s;
+const sym *s;
 {
 	register sym *n;
 

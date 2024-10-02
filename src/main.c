@@ -57,7 +57,7 @@ dodefs()
 			if ('D' == c) {
 				defCt++;
 				defMac(gcpy(as_optarg, 0),
-				       gcpy(p, offset(parm, str)),
+				       (parm*)gcpy(p, offset(parm, str)),
 				       MACSTR);
 			}
 			else

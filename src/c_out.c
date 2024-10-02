@@ -1194,7 +1194,7 @@ void comm(opc *op, parm *p, i32_t n)
  */
 void
 segment(op, p, n)
-opc *op;
+const opc *op;
 parm *p;
 i32_t n;
 {
@@ -1238,7 +1238,7 @@ i32_t n;
  */
 void
 section(name)
-char *name;
+const char *name;
 {
 	int motion, i;
 	char *oldsegs;

@@ -231,7 +231,7 @@ register char *id;
  * If it is not found build it.
  */
 sym *
-symLookUp(char *id, int flag, i32_t loc, int sg)
+symLookUp(const char *id, int flag, i32_t loc, int sg)
 {
 	register sym *sp;
 	char *locSym;
@@ -381,7 +381,7 @@ symLookUp(char *id, int flag, i32_t loc, int sg)
  */
 short
 opLookUp(id)
-char *id;
+const char *id;
 {
 	register const nhash *op;
 	short i, l;
@@ -402,7 +402,7 @@ char *id;
  */
 void
 opDelete(id)
-char *id;
+const char *id;
 {
 	register nhash *op;
 	short i, l;
@@ -422,7 +422,7 @@ char *id;
  * Look up macros and equs symbols. Shares table with symbols.
  */
 macro *
-macLookUp(char *id, int type)
+macLookUp(const char *id, int type)
 {
 	register macro *mp;
 
@@ -459,10 +459,7 @@ int macDelete(char *s, short t)
  * Shares symbol table with other symbols.
  */
 void
-defMac(s, p, t)
-char *s;
-parm *p;
-short t;
+defMac(char *s, parm *p, short t)
 {
 	register macro *tmp;
 	short ht;
