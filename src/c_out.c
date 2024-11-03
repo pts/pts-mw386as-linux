@@ -372,7 +372,7 @@ unsigned sw;
 	 * ESIX linker.
 	 */
 	if (!(sp->flag & (S_EXREF|S_COMMON))) {
-		int seg = segs[sp->sg - 1].segSeq - 1;
+		int seg = sp->sg == 0 ? 0 : segs[sp->sg - 1].segSeq - 1;  /* 0 only when failing for undefined symbols */
 
 		bp->r_symndx = txtAt ? (seg * 2) + txtAt : seg;
 	}
