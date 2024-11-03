@@ -16,14 +16,17 @@ if (!@ARGV or $ARGV[0] eq "--help") {
   print STDERR "Usage: $0 [<flag> ...] <filename.o>\n";
   exit(!@ARGV);
 }
+# TODO(pts): Add error handling for get_int.
+sub get_int($) { lc(substr($_[0], 0, 2)) eq "0x" ? hex(substr($_[0], 2)) : substr($_[0], 0, 1) eq "0" ? oct($_[0]) : int($_[0]) }
 my $do_fewer = 0;
-my $fn;
+my($fn, $timdat);
 { my $i;
   for ($i = 0; $i < @ARGV; ++$i) {
     my $arg = $ARGV[$i];
     if ($arg eq "--") { ++$i; last }
     elsif (substr($arg, 0, 1) ne "-") { last }
     elsif ($arg eq "--fewer") { $do_fewer = 1 }   # Make fewer changes.
+    elsif ($arg =~ m@\A--timdat=(.*)@s) { $timdat = get_int($1) }   # Set timdat (timestamp) in the header. Useful for reproducible builds.
     else { die "fatal: unknown command-line flag: $arg\n" }
   }
   die "fatal: missing <filename.o> argument\n" if $i >= @ARGV;
@@ -55,6 +58,7 @@ die "fatal: expected .rodata section" if $section_count >= 4 and substr($s, 0x94
 
 # https://stackoverflow.com/questions/78287296/binutils-objdump-reports-incorrect-section-sizes-in-coff-object
 my $s0 = $s;
+substr($s, 4, 4) = pack("V", $timdat) if defined($timdat);
 vec($s, 0x13, 8) |= 1;  # byte 0x13 |= 1;  # F_AR32WR. 32-bit little endian.
 vec($s, 0x38 + 2, 8) |= 0x30;
 vec($s, 0x38 + 3, 8) |= 0x60;  # dword 0x38 0x20 -> 0x60300020  # .text flags.
