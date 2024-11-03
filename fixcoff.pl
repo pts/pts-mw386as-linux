@@ -96,6 +96,7 @@ if ($is_coff_fixed) {
 my @sec_vaddrs = (0, $text_vaddr, $data_vaddr, $bss_vaddr);
 my($text_sym, $data_sym, $bss_sym);
 my $sym_count;
+my $zvaddr_count = 0;
 {
   my $sym_ofs;
   ($sym_ofs, $sym_count) = unpack("VV", substr($s, 8, 8));
@@ -111,14 +112,15 @@ my $sym_count;
     my $i0 = $i;
     $i += $numaux + 1;
     next if !$scnum;  # External symbol.
-    if    ($name eq ".text" and $scnum == 1 and $type == 0 and $sclass == 3) { die "fatal: bad .text value\n" if $value != $text_vaddr; $text_sym = $i0 }
-    elsif ($name eq ".data" and $scnum == 2 and $type == 0 and $sclass == 3) { die "fatal: bad .data value\n" if $value != $data_vaddr; $data_sym = $i0 }
-    elsif ($name eq ".bss"  and $scnum == 3 and $type == 0 and $sclass == 3) { die "fatal: bad .bss value: $value\n"  if $value != $bss_vaddr;  $bss_sym = $i0 }
+    my $is_section = 0;
+    if    ($name eq ".text" and $scnum == 1 and $type == 0 and $sclass == 3) { $is_section = 1; ++$zvaddr_count if !$value; die "fatal: bad .text value\n" if $value != $text_vaddr and $value != 0; $text_sym = $i0 }
+    elsif ($name eq ".data" and $scnum == 2 and $type == 0 and $sclass == 3) { $is_section = 1; ++$zvaddr_count if !$value; die "fatal: bad .data value\n" if $value != $data_vaddr and $value != 0; $data_sym = $i0 }
+    elsif ($name eq ".bss"  and $scnum == 3 and $type == 0 and $sclass == 3) { $is_section = 1; ++$zvaddr_count if !$value; die "fatal: bad .bss value\n"  if $value != $bss_vaddr  and $value != 0; $bss_sym = $i0 }
     die "fatal: unexpected scnum: $scnum\n" if $scnum != 1 and $scnum != 2 and $scnum != 3;
-    if ($sec_vaddrs[$scnum] != 0) {
+    if ($is_section ? ($value != 0) : ($sec_vaddrs[$scnum] != 0 and $zvaddr_count != 3)) {  # (This doesn't work with .rodata.).
       $ss_has_changed = 1;
-      # Making it -$value would make linking with wlink fail.
-      substr($ss, $i0 * 0x12 + 8, 4) = pack("V", $value - $sec_vaddrs[$scnum]);  # Fix symbol value.
+      # Making it -$value would make linking with OpenWatcom wlink(1) fail.
+      substr($ss, $i0 * 0x12 + 8, 4) = pack("V", $is_section ? 0 : $value - $sec_vaddrs[$scnum]);  # Fix symbol value.
     }
   }
   # If this check fails, then `$symndx + 1' below in fix_relocs wouldn't work.
@@ -150,6 +152,7 @@ sub fix_relocs($$$$$) {
     die sprintf("fatal: bad vaddr: 0x%x\n", $sec_vaddr, $vaddr) if $vaddr < $sec_vaddr or $vaddr + 4 > $sec_vaddr + $sec_size;
     if (!$do_fewer and $sec_vaddr != 0) { substr($r, $i, 4) = pack("V", $vaddr - $sec_vaddr); $r_has_changed = 1 }
     next if $symndx >= $#sec_vaddrs;  # Not a section-based relocation.
+    next if $zvaddr_count == 3;  # Running non---fewer after previous run with --fewer. (This doesn't work with .rodata.)
     my $delta = -$sec_vaddrs[$symndx + 1];
     #my $d0;
     #die if !seek(F, $sec_ofs + $vaddr - $sec_vaddr, 0);
