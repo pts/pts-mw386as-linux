@@ -128,8 +128,8 @@ my $zvaddr_count = 0;
       substr($ss, $i0 * 0x12 + 8, 4) = pack("V", $is_section ? 0 : $value - $sec_vaddrs[$scnum]);  # Fix symbol value.
     }
   }
-  # If this check fails, then `$symndx + 1' below in fix_relocs wouldn't work.
-  die "fatal: missing sections in symbol table\n" if !defined($text_sym) or !defined($data_sym) or !defined($bss_sym);  # We work even without this.
+  # TODO(pts): Make it work with a few sections missing.
+  die "fatal: missing sections in symbol table\n" if !defined($text_sym) or !defined($data_sym) or !defined($bss_sym);
   if ($ss_has_changed) {
     die if !seek(F, $sym_ofs, 0);
     die if !print(F $ss);
@@ -156,9 +156,13 @@ sub fix_relocs($$$$$) {
     die sprintf("fatal: bad symndx: 0x%x\n", $symndx) if $symndx < 0 or $symndx >= $sym_count;
     die sprintf("fatal: bad vaddr: 0x%x\n", $sec_vaddr, $vaddr) if $vaddr < $sec_vaddr or $vaddr + 4 > $sec_vaddr + $sec_size;
     if (!$do_fewer and $sec_vaddr != 0) { substr($r, $i, 4) = pack("V", $vaddr - $sec_vaddr); $r_has_changed = 1 }
-    next if $symndx >= $#sec_vaddrs;  # Not a section-based relocation.
+    my $sec_idx = ($symndx == $text_sym ? 1 : $symndx == $data_sym ? 2 : $symndx == $bss_sym ? 3 : 0);
+    if (!$sec_idx) {  # Not a section-based relocation.
+      die "fatal: invalid symndx: $symndx\n" if $symndx <= $bss_sym;
+      next;
+    }
     next if $zvaddr_count == 3;  # Running non---fewer after previous run with --fewer. (This doesn't work with .rodata.)
-    my $delta = -$sec_vaddrs[$symndx + 1];
+    my $delta = -$sec_vaddrs[$sec_idx];
     #my $d0;
     #die if !seek(F, $sec_ofs + $vaddr - $sec_vaddr, 0);
     #die if read(F, $d0, 4) != 4;
