@@ -59,6 +59,7 @@ die "fatal: expected .rodata section" if $section_count >= 4 and substr($s, 0x94
 # https://stackoverflow.com/questions/78287296/binutils-objdump-reports-incorrect-section-sizes-in-coff-object
 my $s0 = $s;
 substr($s, 4, 4) = pack("V", $timdat) if defined($timdat);
+vec($s, 0x12, 8) &= ~2;  # byte 0x12 &= ~1;  # EXECUTABLE. OpenWatcom wlink(1) fails with `invalid object file attribute' if set.
 #vec($s, 0x12, 8) |= 4;  # byte 0x12 |= 4;  # LINES_STRIPPED. Doesn't matter. `nasm -f coff' output has it, `nasm -f win32' output doesn't have it.
 vec($s, 0x13, 8) |= 1;  # byte 0x13 |= 1;  # F_AR32WR. 32-bit little endian.
 vec($s, 0x38 + 2, 8) |= 0x30;
