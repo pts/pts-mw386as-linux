@@ -10,6 +10,8 @@
 #
 # There are some other temporary output files as well.
 #
+# !! TODO(pts): src/as segfault on undefined symbol.
+#
 
 export LC_ALL=C
 test "$0" = "${0%/*}" || cd "${0%/*}"
