@@ -21,7 +21,11 @@ binmode(F);
 { my $oldfd = select(F); $| = 1; select($oldfd); }  # Autoflush.
 my $s;
 die "fatal: object file to short: $fn\n" if read(F, $s, 0xb4) < 0xb4 - 0x28;
-die "fatal: not a COFF object file: $fn\n" if vec($s, 0, 16) != 0x4c01;  # Check in big endian.
+my $sh = vec($s, 0, 16);
+if ($sh != 0x4c01) {  # Check in big endian.
+  die "fatal: previous fix has crashed, regenerate file: $fn\n" if $sh == 0xffff;
+  die "fatal: not a COFF object file: $fn\n";
+}
 my $section_count = unpack("v", substr($s, 2, 2));
 #die "fatal: must have 3 or 4 sections: $fn\n" if $section_count != 3 and $section_count != 4;
 die "fatal: must have 3 sections: $fn\n" if $section_count != 3;  # .rodata would be next, but that's nut supported.
@@ -30,6 +34,8 @@ die "fatal: expected .text section" if substr($s, 0x1c - 8, 8) ne ".text\0\0\0";
 die "fatal: expected .data section" if substr($s, 0x44 - 8, 8) ne ".data\0\0\0";
 die "fatal: expected .bss section" if substr($s, 0x6c - 8, 8) ne ".bss\0\0\0\0";
 die "fatal: expected .rodata section" if $section_count >= 4 and substr($s, 0x94 - 8, 8) ne ".rodata\0";
+
+# --- Fix the file header.
 
 # https://stackoverflow.com/questions/78287296/binutils-objdump-reports-incorrect-section-sizes-in-coff-object
 my $s0 = $s;
@@ -42,30 +48,74 @@ vec($s, 0x88 + 2, 8) |= 0x30;
 vec($s, 0x88 + 3, 8) |= 0xc0;  # dword 0x88 0x80 -> 0xc0300080  # .bss flags.
 vec($s, 0xb0 + 2, 8) |= 0x30 if $section_count >= 4;
 vec($s, 0xb0 + 3, 8) |= 0x40 if $section_count >= 4;  # dword 0xb0 0x40 -> 0x40300040  # .rodata flags. (.rdata by MinGW as(1).)
-# Even after fixit it, relocations are still wrong.
-my $text_vaddr = unpack("V", substr($s, 0x1c + 4, 4));
+my($text_vaddr, $text_size) = unpack("Vx4V", substr($s, 0x1c + 4, 12));
 vec($s, 0x1c >> 2, 32) = 0;  # .text paddr.  # Already 0.
 vec($s, 0x20 >> 2, 32) = 0;  # .text vaddr.  # Already 0.
 my $text_ofs = unpack("V", substr($s, 0x1c + 0xc, 4));
 my $text_reloc_ofs = unpack("V", substr($s, 0x1c + 0x10, 4));
 my $text_reloc_count = unpack("V", substr($s, 0x1c + 0x18, 4));
-my $data_vaddr = unpack("V", substr($s, 0x44 + 4, 4));
+my($data_vaddr, $data_size) = unpack("Vx4V", substr($s, 0x44 + 4, 12));
 vec($s, 0x44 >> 2, 32) = 0;  # .data paddr.
 vec($s, 0x48 >> 2, 32) = 0;  # .data vaddr.
 my $data_ofs = unpack("V", substr($s, 0x44 + 0xc, 4));
 my $data_reloc_ofs = unpack("V", substr($s, 0x44 + 0x10, 4));
 my $data_reloc_count = unpack("V", substr($s, 0x44 + 0x18, 4));
-my $bss_vaddr = unpack("V", substr($s, 0x6c + 4, 4));
+my($bss_vaddr, $bss_size) = unpack("Vx4V", substr($s, 0x6c + 4, 12));
 vec($s, 0x6c >> 2, 32) = 0;  # .bss paddr. By keeping it, .bss size is wrong.
 vec($s, 0x70 >> 2, 32) = 0;  # .bss vaddr. By keeping it, .bss size is wrong.
 vec($s, 0x94 >> 2, 32) = 0 if $section_count >= 4;  # .rodata paddr.
 vec($s, 0x98 >> 2, 32) = 0 if $section_count >= 4;  # .rodata vaddr.
-exit(0) if $s0 eq $s;  # Already fixed.
+my $is_coff_fixed = ($text_vaddr == 0 and $data_vaddr == 0 and $bss_vaddr == 0);
+exit(0) if $s0 eq $s;  # Already correct.
+vec($s, 0, 16) = 0xffff if !$is_coff_fixed;  # Ruin the file header temporarily, in case the process crashes before finishing successfully.
 die if !seek(F, 0, 0);
 die if !print(F $s);
+if ($is_coff_fixed) {
+  die if !close(F);
+  exit(0);
+}
+
+# --- Fix the symbol table.
+
+my @sec_vaddrs = (0, $text_vaddr, $data_vaddr, $bss_vaddr);
+my($text_sym, $data_sym, $bss_sym);
+my $sym_count;
+{
+  my $sym_ofs;
+  ($sym_ofs, $sym_count) = unpack("VV", substr($s, 8, 8));
+  die if !seek(F, $sym_ofs, 0);
+  my $ss;
+  my $ss_has_changed = 0;
+  die "fatal: error reading symbol table\n" if (read(F, $ss, $sym_count * 0x12) or 0) != $sym_count * 0x12;
+  for (my $i = 0; $i < $sym_count; ) {  # https://web.archive.org/web/20230921074944/https://delorie.com/djgpp/doc/coff/symtab.html
+    my($name, $value, $scnum, $type, $sclass, $numaux) = unpack("a8VvvCC", substr($ss, $i * 0x12, 0x12));
+    $name =~ s@\0+\Z(?!\n)@@;
+    # Names longer than 8 bytes are added later. We don't need them. $name is empty for them.
+    #printf STDERR "info: symbol name=%s value=0x%x scnum=0x%x type=0x%x sclass=0x%x numaux=0x%x\n", $name, $value, $scnum, $type, $sclass, $numaux;
+    my $i0 = $i;
+    $i += $numaux + 1;
+    next if !$scnum;  # External symbol.
+    if    ($name eq ".text" and $scnum == 1 and $type == 0 and $sclass == 3) { die "fatal: bad .text value\n" if $value != $text_vaddr; $text_sym = $i0 }
+    elsif ($name eq ".data" and $scnum == 2 and $type == 0 and $sclass == 3) { die "fatal: bad .data value\n" if $value != $data_vaddr; $data_sym = $i0 }
+    elsif ($name eq ".bss"  and $scnum == 3 and $type == 0 and $sclass == 3) { die "fatal: bad .bss value: $value\n"  if $value != $bss_vaddr;  $bss_sym = $i0 }
+    die "fatal: unexpected scnum: $scnum\n" if $scnum != 1 and $scnum != 2 and $scnum != 3;
+    if ($sec_vaddrs[$scnum] != 0) {
+      $ss_has_changed = 1;
+      substr($ss, $i0 * 0x12 + 8, 4) = pack("V", $value - $sec_vaddrs[$scnum]);  # Fix symbol value.
+    }
+  }
+  # If this check fails, then `$symndx + 1' below in fix_relocs wouldn't work.
+  die "fatal: missing sections in symbol table\n" if !defined($text_sym) or !defined($data_sym) or !defined($bss_sym);  # We work even without this.
+  if ($ss_has_changed) {
+    die if !seek(F, $sym_ofs, 0);
+    die if !print(F $ss);
+  }
+}
+
+# --- Fix the relocations.
 
 sub fix_relocs($$$$$) {
-  my($reloc_ofs, $count, $ofs, $svaddr, $vaddrs) = @_;
+  my($reloc_ofs, $count, $sec_ofs, $sec_vaddr, $sec_size) = @_;
   return if $count == 0;
   die "fatal: relocation count overflow\n" if $count < 0 or $count >= 214748364;  # Should be OK even if multiplied by 10.
   die "fatal: relocation ofs overflow\n" if $reloc_ofs < 0 or ($reloc_ofs >> 31) != 0;
@@ -77,20 +127,25 @@ sub fix_relocs($$$$$) {
   for (my $i = 0; $i != $count; $i += 10) {
     my($vaddr, $symndx, $type) = unpack("VVv", substr($r, $i, 10));
     # RELOC_ADDR32=6, RELOC_REL32=0x14==20.
-    #printf(STDERR "info: vaddr=0x%x symndx=0x%x type=0x%x\n", $vaddr, $symndx, $type);
+    #printf(STDERR "info: reloc sec_vaddr=0x%x vaddr=0x%x symndx=0x%x type=0x%x\n", $sec_vaddr, $vaddr, $symndx, $type);
     die sprintf("fatal: expected reloc type=0x6(RELOC_ADDR32), got 0x%x\n", $type) if $type != 6;
-    die sprintf("fatal: expected symndx less than 0x%x, got 0x%x\n", scalar(@$vaddrs), $symndx) if @$vaddrs <= $symndx;
-    die sprintf("fatal: expected vaddr at least 0x%x, got 0x%x\n", $svaddr, $vaddr) if $svaddr > $vaddr;
-    if ($svaddr != 0) { substr($r, $i, 4) = pack("V", $vaddr - $svaddr); $r_has_changed = 1 }
-    my $delta = -($vaddrs->[$symndx] << 1);
+    die sprintf("fatal: bad symndx: 0x%x\n", $symndx) if $symndx < 0 or $symndx >= $sym_count;
+    die sprintf("fatal: bad vaddr: 0x%x\n", $sec_vaddr, $vaddr) if $vaddr < $sec_vaddr or $vaddr + 4 > $sec_vaddr + $sec_size;
+    if ($sec_vaddr != 0) { substr($r, $i, 4) = pack("V", $vaddr - $sec_vaddr); $r_has_changed = 1 }
+    next if $symndx >= $#sec_vaddrs;  # Not a section-based relocation.
+    my $delta = -$sec_vaddrs[$symndx + 1];
+    #my $d0;
+    #die if !seek(F, $sec_ofs + $vaddr - $sec_vaddr, 0);
+    #die if read(F, $d0, 4) != 4;
+    #printf(STDERR "info: reloc vaddr=0x%x delta=-0x%x, symndx=0x%x type=0x%x d=0x%x\n", $vaddr, -$delta & 0xffffffff, $symndx, $type, unpack("V", $d0));
     next if $delta == 0;
-    #printf(STDERR "info: fix vaddr=0x%x delta=0x%x\n", $vaddr, $delta);
-    die if !seek(F, $ofs + $vaddr - $svaddr, 0);
+    #printf(STDERR "info: fix vaddr=0x%x delta=-0x%x\n", $vaddr, -$delta & 0xffffffff);
     my $d;
+    die if !seek(F, $sec_ofs + $vaddr - $sec_vaddr, 0);
     die if read(F, $d, 4) != 4;
     my $d2 = pack("V", (unpack("V", $d) + $delta) & 0xffffffff);
-    printf(STDERR "info: fix vaddr=0x%x delta=0x%x d=0x%x d2=0x%x\n", $vaddr - $svaddr, $delta, unpack("V", $d), unpack("V", $d2)) if $svaddr != 0;
-    die if !seek(F, $ofs + $vaddr - $svaddr, 0);
+    #printf(STDERR "info: fix vaddr=0x%x delta=-0x%x d=0x%x d2=0x%x\n", $vaddr - $sec_vaddr, -$delta & 0xffffffff, unpack("V", $d), unpack("V", $d2));
+    die if !seek(F, $sec_ofs + $vaddr - $sec_vaddr, 0);
     die if !print(F $d2);
   }
   if ($r_has_changed) {
@@ -99,10 +154,12 @@ sub fix_relocs($$$$$) {
   }
 }
 
-my $vaddrs = [$text_vaddr, $data_vaddr, $bss_vaddr];
-fix_relocs($text_reloc_ofs, $text_reloc_count, $text_ofs, $text_vaddr, $vaddrs);
-fix_relocs($data_reloc_ofs, $data_reloc_count, $data_ofs, $data_vaddr, $vaddrs);
+fix_relocs($text_reloc_ofs, $text_reloc_count, $text_ofs, $text_vaddr, $text_size);
+fix_relocs($data_reloc_ofs, $data_reloc_count, $data_ofs, $data_vaddr, $data_size);
 
+die if !seek(F, 0, 0);
+$s = "\0\0"; vec($s, 0, 16) = 0x4c01;  # Big endian.
+die if !print(F $s);
 die if !close(F);
 
 __END__
