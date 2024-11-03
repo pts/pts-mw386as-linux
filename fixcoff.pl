@@ -103,6 +103,7 @@ my @sec_vaddrs = (0, $text_vaddr, $data_vaddr, $bss_vaddr);
 my($text_sym, $data_sym, $bss_sym);
 my $sym_count;
 my $zvaddr_count = 0;
+my %extern_symbols;
 {
   my $sym_ofs;
   ($sym_ofs, $sym_count) = unpack("VV", substr($s, 8, 8));
@@ -117,6 +118,7 @@ my $zvaddr_count = 0;
     #printf STDERR "info: symbol name=%s value=0x%x scnum=0x%x type=0x%x sclass=0x%x numaux=0x%x\n", $name, $value, $scnum, $type, $sclass, $numaux;
     my $i0 = $i;
     $i += $numaux + 1;
+    $extern_symbols{$i0} = 1 if !$scnum;  # External symbol.
     next if !$scnum or $scnum == 0xffff;  # External symbol or absolute value.
     my $is_section = 0;
     if    ($name eq ".text" and $scnum == 1 and $type == 0 and $sclass == 3) { $is_section = 1; ++$zvaddr_count if !$value; die "fatal: bad .text value\n" if $value != $text_vaddr and $value != 0; $text_sym = $i0 }
@@ -159,6 +161,7 @@ sub fix_relocs($$$$$) {
     if (!$do_fewer and $sec_vaddr != 0) { substr($r, $i, 4) = pack("V", $vaddr - $sec_vaddr); $r_has_changed = 1 }
     my $sec_idx = ($symndx == $text_sym ? 1 : $symndx == $data_sym ? 2 : $symndx == $bss_sym ? 3 : 0);
     if (!$sec_idx) {  # Not a section-based relocation.
+      die "fatal: unexpected symndx: $symndx\n" if !exists($extern_symbols{$symndx});  # What to do if not an external symbol? Should we do the subtraction of the symbol value?
       die "fatal: invalid symndx: $symndx\n" if $symndx <= $bss_sym;
       next;
     }
