@@ -116,7 +116,7 @@ my $zvaddr_count = 0;
     #printf STDERR "info: symbol name=%s value=0x%x scnum=0x%x type=0x%x sclass=0x%x numaux=0x%x\n", $name, $value, $scnum, $type, $sclass, $numaux;
     my $i0 = $i;
     $i += $numaux + 1;
-    next if !$scnum;  # External symbol.
+    next if !$scnum or $scnum == 0xffff;  # External symbol or absolute value.
     my $is_section = 0;
     if    ($name eq ".text" and $scnum == 1 and $type == 0 and $sclass == 3) { $is_section = 1; ++$zvaddr_count if !$value; die "fatal: bad .text value\n" if $value != $text_vaddr and $value != 0; $text_sym = $i0 }
     elsif ($name eq ".data" and $scnum == 2 and $type == 0 and $sclass == 3) { $is_section = 1; ++$zvaddr_count if !$value; die "fatal: bad .data value\n" if $value != $data_vaddr and $value != 0; $data_sym = $i0 }
