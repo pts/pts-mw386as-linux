@@ -39,7 +39,7 @@ eval 'PERL_BADLANG=x;export PERL_BADLANG;exec perl -x "$0" "$@";exit 1'
 # * MinGW32 GNU Binutils i586-mingw32msvc-objdump, i686-w64-mingw32-objdmup
 # * Coherent COFF dump tool cdmp(1): it works even before the fix
 # * (not tried yet) OpenWatcom dump tool wdump(1)
-# * (not tried yet) OpenWatcom disassembler wdis(1)
+# * OpenWatcom disassembler wdis(1)
 # * (not tried yet) Microsoft linker (>=6.00) link.exe
 #
 # Please note that GNU Binutils objdump(1) ignores the .comment section in a
