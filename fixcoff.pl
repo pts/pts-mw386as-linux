@@ -100,6 +100,15 @@ die "fatal: expected .rodata section" if $section_count >= 4 and substr($s, 0x94
 
 # --- Fix the file header.
 
+sub max {
+  die "fatal: assert: no input to max(...)\n" if !@_;
+  my $result = $_[0];
+  for my $v (@_) {
+    $result = $v if $result < $v;
+  }
+  $result
+}
+
 # https://stackoverflow.com/questions/78287296/binutils-objdump-reports-incorrect-section-sizes-in-coff-object
 my $s0 = $s;
 substr($s, 4, 4) = pack("V", $timdat) if defined($timdat);
@@ -134,11 +143,16 @@ vec($s, 0x70 >> 2, 32) = 0 if !$do_fewer;  # .bss vaddr. By keeping it, .bss siz
 #vec($s, 0x94 >> 2, 32) = 0 if !$do_fewer and $section_count >= 4;  # .rodata paddr.
 #vec($s, 0x98 >> 2, 32) = 0 if !$do_fewer and $section_count >= 4;  # .rodata vaddr.
 my $is_coff_fixed = ($text_vaddr == 0 and $data_vaddr == 0 and $bss_vaddr == 0);
-exit(0) if $s0 eq $s;  # Already correct.
-vec($s, 0, 16) = 0xffff if !$is_coff_fixed;  # Ruin the file header temporarily, in case the process crashes before finishing successfully.
+my($sym_ofs, $sym_count) = unpack("VV", substr($s, 8, 8));
+my $end_ofs = max($sym_ofs + $sym_count * 0x12, $text_reloc_ofs + $text_reloc_count * 10, $data_reloc_ofs + $data_reloc_count * 10, ($text_size ? $text_ofs + $text_size : 0), ($data_size ? $data_ofs + $data_size : 0));
+die if !seek(F, 0, 2);
+my $fsize = tell(F);
+my $is_coff_large = ($fsize - 4 >= $end_ofs);  # OpenWatcom wdump(1) fails unless there are trailing bytes.
+exit(0) if $s0 eq $s and $is_coff_large;  # Already correct.
+vec($s, 0, 16) = 0xffff if !($is_coff_fixed and $is_coff_large);  # Ruin the file header temporarily, in case the process crashes before finishing successfully.
 die if !seek(F, 0, 0);
 die if !print(F $s);
-if ($is_coff_fixed) {
+if ($is_coff_fixed and $is_coff_large) {
   die if !close(F);
   exit(0);
 }
@@ -147,12 +161,9 @@ if ($is_coff_fixed) {
 
 my @sec_vaddrs = (0, $text_vaddr, $data_vaddr, $bss_vaddr, $comment_vaddr);
 my($text_sym, $data_sym, $bss_sym);
-my $sym_count;
 my $zvaddr_count = 0;
 my %extern_symbols;
-{
-  my $sym_ofs;
-  ($sym_ofs, $sym_count) = unpack("VV", substr($s, 8, 8));
+if (!$is_coff_fixed) {
   die if !seek(F, $sym_ofs, 0);
   my $ss;
   my $ss_has_changed = 0;
@@ -233,8 +244,18 @@ sub fix_relocs($$$$$) {
   }
 }
 
-fix_relocs($text_reloc_ofs, $text_reloc_count, $text_ofs, $text_vaddr, $text_size);
-fix_relocs($data_reloc_ofs, $data_reloc_count, $data_ofs, $data_vaddr, $data_size);
+if (!$is_coff_fixed) {
+  fix_relocs($text_reloc_ofs, $text_reloc_count, $text_ofs, $text_vaddr, $text_size);
+  fix_relocs($data_reloc_ofs, $data_reloc_count, $data_ofs, $data_vaddr, $data_size);
+}
+
+# ---
+
+if (!$is_coff_large) {
+  die if !seek(F, 0, 2);
+  my $extra = "\0" x ($end_ofs - ($fsize - 4));  # Typically $end_ofs == $fsize, so it's 4.
+  die if !print(F $extra);
+}
 
 die if !seek(F, 0, 0);
 $s = "\0\0"; vec($s, 0, 16) = 0x4c01;  # Big endian.
