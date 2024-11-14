@@ -46,13 +46,14 @@ if ($sh != 0x4c01) {  # Check in big endian.
   die "fatal: not a COFF object file: $fn\n";
 }
 my $section_count = unpack("v", substr($s, 2, 2));
-#die "fatal: must have 3 or 4 sections: $fn\n" if $section_count != 3 and $section_count != 4;
-die "fatal: must have 3 sections: $fn\n" if $section_count != 3;  # .rodata would be next, but that's nut supported.
+die "fatal: must have 3 or 4 sections: $fn\n" if $section_count != 3 and $section_count != 4;
+#die "fatal: must have 3 sections: $fn\n" if $section_count != 3;  # .rodata would be next, but that's not supported by mw386as or SVR3 assembler or SunOS 4.01 assembler.
 die "fatal: EOF in COFF section definitions: $fn\n" if length($s) < 0x14 + ($section_count * 0x28);
 die "fatal: expected .text section" if substr($s, 0x1c - 8, 8) ne ".text\0\0\0";
 die "fatal: expected .data section" if substr($s, 0x44 - 8, 8) ne ".data\0\0\0";
 die "fatal: expected .bss section" if substr($s, 0x6c - 8, 8) ne ".bss\0\0\0\0";
-die "fatal: expected .rodata section" if $section_count >= 4 and substr($s, 0x94 - 8, 8) ne ".rodata\0";
+#die "fatal: expected .rodata section" if $section_count >= 4 and substr($s, 0x94 - 8, 8) ne ".rodata\0";  # .rodata is not supported by mw386as or SVR3 assembler or SunOS 4.01 assembler.
+die "fatal: expected .rodata section" if $section_count >= 4 and substr($s, 0x94 - 8, 8) ne ".comment";
 
 # --- Fix the file header.
 
@@ -83,6 +84,8 @@ my $data_ofs = unpack("V", substr($s, 0x44 + 0xc, 4));
 my $data_reloc_ofs = unpack("V", substr($s, 0x44 + 0x10, 4));
 my $data_reloc_count = unpack("V", substr($s, 0x44 + 0x18, 4));
 my($bss_vaddr, $bss_size) = unpack("Vx4V", substr($s, 0x6c + 4, 12));
+my $comment_vaddr = 0;
+$comment_vaddr = unpack("V", substr($s, 0x94 + 4, 4)) if $section_count == 4;
 vec($s, 0x6c >> 2, 32) = 0 if !$do_fewer;  # .bss paddr. By keeping it, .bss size is wrong.
 vec($s, 0x70 >> 2, 32) = 0 if !$do_fewer;  # .bss vaddr. By keeping it, .bss size is wrong.
 #vec($s, 0x94 >> 2, 32) = 0 if !$do_fewer and $section_count >= 4;  # .rodata paddr.
@@ -99,7 +102,7 @@ if ($is_coff_fixed) {
 
 # --- Fix the symbol table.
 
-my @sec_vaddrs = (0, $text_vaddr, $data_vaddr, $bss_vaddr);
+my @sec_vaddrs = (0, $text_vaddr, $data_vaddr, $bss_vaddr, $comment_vaddr);
 my($text_sym, $data_sym, $bss_sym);
 my $sym_count;
 my $zvaddr_count = 0;
@@ -119,12 +122,12 @@ my %extern_symbols;
     my $i0 = $i;
     $i += $numaux + 1;
     $extern_symbols{$i0} = 1 if !$scnum;  # External symbol.
-    next if !$scnum or $scnum == 0xffff;  # External symbol or absolute value.
+    next if !$scnum or $scnum == 0xffff or $scnum == 0x0fffe;  # External symbol or absolute value or debug symbol (such as .file).
     my $is_section = 0;
     if    ($name eq ".text" and $scnum == 1 and $type == 0 and $sclass == 3) { $is_section = 1; ++$zvaddr_count if !$value; die "fatal: bad .text value\n" if $value != $text_vaddr and $value != 0; $text_sym = $i0 }
     elsif ($name eq ".data" and $scnum == 2 and $type == 0 and $sclass == 3) { $is_section = 1; ++$zvaddr_count if !$value; die "fatal: bad .data value\n" if $value != $data_vaddr and $value != 0; $data_sym = $i0 }
     elsif ($name eq ".bss"  and $scnum == 3 and $type == 0 and $sclass == 3) { $is_section = 1; ++$zvaddr_count if !$value; die "fatal: bad .bss value\n"  if $value != $bss_vaddr  and $value != 0; $bss_sym = $i0 }
-    die "fatal: unexpected scnum: $scnum\n" if $scnum != 1 and $scnum != 2 and $scnum != 3;
+    die "fatal: unexpected scnum: $scnum\n" if $scnum != 1 and $scnum != 2 and $scnum != 3 and $scnum != 4;
     if ($is_section ? ($value != 0) : ($sec_vaddrs[$scnum] != 0 and $zvaddr_count != 3)) {  # (This doesn't work with .rodata.).
       $ss_has_changed = 1;
       # Making it -$value would make linking with OpenWatcom wlink(1) fail.
