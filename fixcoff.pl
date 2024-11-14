@@ -45,6 +45,11 @@ eval 'PERL_BADLANG=x;export PERL_BADLANG;exec perl -x "$0" "$@";exit 1'
 # Please note that GNU Binutils objdump(1) ignores the .comment section in a
 # COFF .o file.
 #
+# Questions to answer:
+#
+# * What is the difference between classic (iBCS2) COFF, DJGPP COFF and PE/COFF?
+# * Does COFF support the .rodata section? Which assemblers support it?
+#
 
 BEGIN { $^W = 1 }
 use integer;
